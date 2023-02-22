@@ -1,0 +1,14 @@
+<html>
+	<script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+	<script src="https://www.webrtc-experiment.com/EBML.js"></script>
+	<script defer>
+		const RECORDING_ID = "<%= data.recordingId %>";
+	</script>
+	<script src="/openvidu-browser-2.18.0.js"></script>
+	<script src="/app.js"></script>
+	<body onload="deleteRecording(RECORDING_ID)">
+		<div id="message">
+            <p id="delete-status"></p>
+         </div>
+	</body>
+</html>

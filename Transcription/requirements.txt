@@ -1,0 +1,6 @@
+pydub==0.25.1
+vosk==0.3.42
+git+https://github.com/openai/whisper.git
+pandas
+openpyxl
+stable-ts
