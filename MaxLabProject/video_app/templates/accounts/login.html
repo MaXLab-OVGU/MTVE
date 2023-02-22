@@ -1,0 +1,74 @@
+{% extends 'base.html' %} {% block content %}
+<div>
+  <style>
+    .form-signin {
+      width: 100%;
+      max-width: 330px;
+      padding: 15px;
+      margin: auto;
+    }
+    .form-signin .form-control {
+      position: relative;
+      box-sizing: border-box;
+      height: auto;
+      padding: 10px;
+      font-size: 16px;
+    }
+    .form-signin .form-control:focus {
+      z-index: 2;
+    }
+    .form-signin input[type="email"] {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .form-signin input[type="password"] {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+    .h3 {
+      text-align: center;
+    }
+    .mb-10 {
+        margin-bottom: 10px ;
+    }
+  </style>
+
+  <form class="form-signin" method="post">
+    {% csrf_token %}
+    <h1 class="h3 mb-3 font-weight-normal">Login</h1>
+    <input
+      name="email"
+      type="email"
+      id="inputEmail"
+      class="form-control"
+      placeholder="Email address"
+      required
+      autofocus
+    />
+    <input
+      name="password"
+      type="password"
+      id="inputPassword"
+      class="form-control"
+      placeholder="Password"
+      required
+    />
+
+    {% for field in login_form %} {% for error in field.errors %}
+    <p style="color: red">{{error}}</p>
+    {% endfor %} {% endfor %} {% if login_form.non_field_errors %}
+    <div style="color: red">
+      <p>{{login_form.non_field_errors}}</p>
+    </div>
+    {% endif %}
+    <button class="btn btn-lg btn-primary btn-block mb-10" type="submit">
+      Login
+    </button>
+    <a class = "text-lead lead" href ="{% url 'request-reset-link' %}">
+      Reset Password
+    </button>
+  </form>
+</div>
+{% endblock content %}

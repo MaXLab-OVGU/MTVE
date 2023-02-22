@@ -1,0 +1,78 @@
+{% extends 'base.html' %} {% block content %}
+<style>
+	th {
+		border: 1px solid black;
+		border-collapse: collapse;
+		text-align: center;
+	}
+	td {
+		text-align: center;
+	}
+</style>
+
+<div class="container-fluid" style="margin-top: 40px; width: 100%">
+	<div class="table-responsive table-striped table-bordered">
+		<table class="card-table table">
+			<thead>
+				<tr>
+					<th>Room ID#</th>
+					<th>Meeting Start Time</th>
+					{% if admin%}
+					<th>User Name</th>
+					{% endif%}
+					<th>Room Name</th>
+					<th>Participants</th>
+					<th>Duration (Mins)</th>
+					<th>Video</th>
+					<th>Configuration</th>
+					<th>Download Link</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for exp in exps_hist %}
+				<tr>
+					<td>{{exp.room_id.room_id}}</td>
+					<td>{{exp.meeting_start_time}}</td>
+					{% if admin%}
+					<td>{{exp.room_id.username}}</td>
+					{% endif%}
+					<td>{{exp.room_name}}</td>
+					<td>{{exp.number_of_participants}}</td>
+					<td>{{exp.duration}}</td>
+					<td>{{exp.resolution}} @ {{exp.frame_rate}} fps</td>
+					<td>
+						{% if exp.is_audio_enabled %}
+						<a data-toggle="tooltip" title="Audio" class="fa fa-microphone"></a>
+						{% endif %} {% if exp.is_video_enabled %}
+						<a data-toggle="tooltip" title="Video" class="fa fa-video-camera"></a>
+						{% endif %} {% if exp.is_recording_audio_enabled %}
+						<a data-toggle="tooltip" title="Recording" class="fa fa-dot-circle-o"></a>
+						{% endif %}
+					</td>
+					<td>
+						{% if exp.is_recording_audio_enabled == 0 %} No Recording {% endif %}
+						{% if exp.is_recording_audio_enabled == 1 %}
+						<a
+							class="p-2 text-dark"
+							href="{{ OPENVIDU_SERVER_URL }}{{exp.session_id}}/{{exp.session_id}}.mp4"
+							target="_blank"
+							>Download Recording</a
+						>
+						{% endif %} {% comment %}
+						<a
+							data-toggle="tooltip"
+							title="Delete Recording"
+							id="deletebtn"
+							href=""{{ VIDEO_SERVER_URL }}{{exp.room_id}}""
+							class="fa fa-trash"
+							target="_blank"
+						></a>
+						{% endcomment %}
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</div>
+{% endblock content %}

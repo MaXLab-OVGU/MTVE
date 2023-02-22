@@ -1,0 +1,143 @@
+{% extends 'base.html' %} {% block content %}
+
+<div>
+	<style>
+		.form-signin {
+			width: 100%;
+			max-width: 330px;
+			padding: 15px;
+			margin: auto;
+		}
+		.form-signin .form-control {
+			position: relative;
+			box-sizing: border-box;
+			height: auto;
+			padding: 10px;
+			font-size: 16px;
+		}
+		.form-signin .form-control:focus {
+			z-index: 2;
+		}
+		.form-signin input[type="email"] {
+			margin-bottom: 10px;
+			border-bottom-right-radius: 0;
+			border-bottom-left-radius: 0;
+		}
+		.form-signin input[type="text"] {
+			margin-bottom: 10px;
+			border-bottom-right-radius: 0;
+			border-bottom-left-radius: 0;
+		}
+		.form-signin input[type="number"] {
+			margin-bottom: 10px;
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+		}
+		.form-signin .form-select {
+			margin-bottom: 10px;
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+		}
+		.h3 {
+			text-align: center;
+		}
+	</style>
+
+	<form class="form-signin" method="post">
+		{% csrf_token %}
+		<h1 class="h3 mb-3 font-weight-normal">Create Room</h1>
+		<label for="experimentname">Experiment Name</label>
+		<input
+			name="room_name"
+			type="text"
+			id="experimentname"
+			class="form-control"
+			placeholder="Experiment Name"
+			required
+			autofocus
+		/>
+		<label for="no_participants">No Of Participants:</label>
+		<input
+			name="number_of_participants"
+			type="number"
+			id="no_participants"
+			class="form-control"
+			placeholder="Number of Participants"
+			min="1"
+			max="5"
+			required
+		/>
+		<label for="duration">Duration of the Meeting(in mins):</label>
+		<input
+			name="duration"
+			type="number"
+			id="duration"
+			class="form-control"
+			placeholder="Duration in Minutes"
+			min="0.5"
+			max="90"
+			step="0.5"
+			required
+		/>
+		<label for="resolution">Resolution:</label>
+		<select class="form-select form-control" name="resolution">
+			<option value="640x480" selected>640x480</option>
+			<option value="1280x720">1280x720</option>
+			<option value="1920x1080">1920x1080</option>
+			<option value="3840x2160">3840x2160</option>
+		</select>
+		<label for="frame_rate">Frame Rate:</label>
+		<input
+			name="frame_rate"
+			type="number"
+			id="frame_rate"
+			value="{{ expObj.frame_rate }}"
+			class="form-control"
+			placeholder="Frame Rate"
+			min="30"
+			max="60"
+			value="30"
+			required
+		/>
+		<label for="communication">Communication:</label>
+		<select
+			class="form-select form-control"
+			onChange="toggleRecording(this)"
+			name="communication"
+			id="communication"
+		>
+			<option value="av" selected>Audio + Video</option>
+			<option value="a">Audio</option>
+		</select>
+		<label for="recording">Recording:</label>
+		<select class="form-select form-control" name="recording" id="recording">
+			<option value="nr">Dont Record</option>
+			<option value="a">Audio</option>
+			<option value="av" selected>Audio + Video</option>
+		</select>
+		{% for field in room_form %} {% for error in field.errors %}
+		<p style="color: red">{{error}}</p>
+		{% endfor %} {% endfor %} {% if room_form.non_field_errors %}
+		<div style="color: red">
+			<p>{{room_form.non_field_errors}}</p>
+		</div>
+		{% endif %} {% if success_message %}
+		<p style="color: green; text-align: center">{{success_message}}</p>
+		{% endif %}
+
+		<button class="btn btn-lg btn-primary btn-block" type="submit">Create Room</button>
+	</form>
+</div>
+<script type="text/javascript">
+	function toggleRecording(communication) {
+		console.log("asdasd");
+		if (communication.value == "a") {
+			document.getElementById("recording").value = "a";
+			document.getElementById("recording").selectedIndex = 1;
+			document.getElementById("recording").options[2].disabled = true;
+		} else {
+			document.getElementById("recording").options[2].disabled = false;
+		}
+	}
+</script>
+{% endblock content %}

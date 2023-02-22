@@ -1,0 +1,28 @@
+/*//////////////////////////////////////////////////////////////////
+[ home_base ]*/
+
+.container-flex {
+	width: 100%;
+	align-items: center;
+	justify-content: center;
+	border-bottom: 1rem;
+	box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+.base {
+    margin: 0px;
+	padding: 6px;
+}
+
+.main {
+	min-height: 100vh;
+	height: 100%;
+}
+
+.logo-img {
+	max-width: 20%;
+}
+
+.dropdown-toggle {
+	outline: 0;
+}
