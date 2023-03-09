@@ -11,6 +11,19 @@ var meeting_start_time = null;
 var publisher;
 var localRecorder;
 var recordingStopped = false;
+var numberOfStreamsPlaying = 0;
+
+// function randomDelay() {
+// 	// Adds a random delay of upto 1 sec
+// 	max = 10;
+// 	min = 0;
+// 	delayInMilliseconds = Math.floor(Math.random() * (max - min + 1) + min) * 100;
+
+// 	setTimeout(function () {
+// 		console.log("Delay of - " + delayInMilliseconds + " ms");
+// 		joinSession();
+// 	}, delayInMilliseconds);
+// }
 
 const joinSession = () => {
 	$("#join").show();
@@ -20,6 +33,7 @@ const joinSession = () => {
 	$("#permission-denied").hide();
 	sessionName = ROOM_ID;
 	console.log(sessionName);
+
 	getToken(() => {
 		//Get an OpenVidu object ---
 		OV = new OpenVidu();
@@ -30,35 +44,57 @@ const joinSession = () => {
 		//Init a session ---
 		session = OV.initSession();
 
-		session.on("connectionCreated", (event) => {});
+		session.on("connectionCreated", (event) => {
+			console.log("connectionCreated");
+		});
 
-		session.on("connectionDestroyed", (event) => {});
+		session.on("connectionDestroyed", (event) => {
+			console.log("connectionDestroyed");
+		});
 
 		// On every new Stream received...
 		session.on("streamCreated", (event) => {
 			// Subscribe to the Stream to receive it
 			// HTML video will be appended to element with 'video-container' id
 			var subscriber = session.subscribe(event.stream, "video-container");
+			console.log("Session subscribed");
 
 			// When the HTML video has been appended to DOM...
 			subscriber.on("videoElementCreated", (event) => {
 				// updateNumVideos(1);
+				console.log("Subscriber Video Element Created");
 			});
 
 			// When the HTML video has been appended to DOM...
 			subscriber.on("videoElementDestroyed", (event) => {
 				// Add a new HTML element for the user's name and nickname over its video
 				// updateNumVideos(-1);
+				console.log("Subscriber Video Element Destroyed");
 			});
 
 			// When the subscriber stream has started playing media...
-			subscriber.on("streamPlaying", (event) => {});
+			subscriber.on("streamPlaying", (event) => {
+				console.log("Subscriber Stream Playing");
+				numberOfStreamsPlaying = numberOfStreamsPlaying + 1;
+				console.log(numberOfStreamsPlaying);
+				// setTimeout(endMeeting, parseInt(DURATION));
+				// if (RECORDING_AUDIO_ENABLED === "1") {
+				// 	console.log("Recording Started");
+				// 	startRecording();
+				// }
+			});
 		});
 
-		session.on("streamDestroyed", (event) => {});
+		session.on("streamDestroyed", (event) => {
+			console.log("streamDestroyed");
+		});
 
 		session.on("sessionDisconnected", (event) => {
-			if (RECORDING_AUDIO_ENABLED === "1") stopRecording();
+			console.log("streamDestroyed");
+			if (RECORDING_AUDIO_ENABLED === "1") {
+				stopRecording();
+				console.log("Recording Stopped");
+			}
 			$("#join").hide();
 			$("#session").hide();
 			$("#endmeeting").show();
@@ -80,7 +116,7 @@ const joinSession = () => {
 			.connect(token)
 			.then(() => {
 				handler = setInterval(function () {
-					// Check every 3 seconds of required number of participants joined the meeting
+					// Check every 1 second if required number of participants joined the meeting
 					fetchNumberofconnections(function (session_info) {
 						if (
 							session_info.session_details.connections.numberOfElements >=
@@ -125,8 +161,18 @@ const joinSession = () => {
 							publisher.on("videoElementCreated", (event) => {
 								// updateNumVideos(1);
 								$(event.element).prop("muted", true); // Mute local video
-								setTimeout(endMeeting, parseInt(DURATION));
-								if (RECORDING_AUDIO_ENABLED === "1") startRecording();
+								numberOfStreamsPlaying = numberOfStreamsPlaying + 1;
+								internalHandler = setInterval(function () {
+									if (numberOfStreamsPlaying >= parseInt(REQUIRED_PARTICIPANTS)) {
+										clearInterval(internalHandler);
+										if (RECORDING_AUDIO_ENABLED === "1") {
+											console.log("Recording started");
+											startRecording();
+										} else {
+											setTimeout(endMeeting, parseInt(DURATION));
+										}
+									}
+								}, 1000);
 							});
 
 							// When the HTML video has been appended to DOM...
@@ -136,15 +182,18 @@ const joinSession = () => {
 							});
 
 							// When the publisher stream has started playing media...
-							publisher.on("streamPlaying", (event) => {});
+							publisher.on("streamPlaying", (event) => {
+								console.log("Publisher Stream playing");
+							});
 
 							//Set Streamid
-							publisher.stream.streamId = ROOM_ID + '_' + ROOM_NAME + '_' + meeting_start_time;
-							console.log(publisher.stream.streamId)
+							publisher.stream.streamId =
+								ROOM_ID + "_" + ROOM_NAME + "_" + meeting_start_time;
+							console.log(publisher.stream.streamId);
 
 							//Publish your stream
 							session.publish(publisher);
-
+							console.log("Stream Published");
 						} else {
 							console.log("Waiting for users");
 						}
@@ -188,7 +237,18 @@ function startRecording() {
 	var hasVideo = RECORDING_VIDEO_ENABLED === "1";
 
 	localRecorder = OV.initLocalRecorder(publisher.stream);
+	var localRecordIdArray = localRecorder.id.split("_");
+
+	localRecorder.id = [
+		[ROOM_ID, ROOM_NAME, meeting_start_time].join("_"),
+		[
+			localRecordIdArray[localRecordIdArray.length - 3],
+			localRecordIdArray[localRecordIdArray.length - 2],
+			localRecordIdArray[localRecordIdArray.length - 1],
+		].join("_"),
+	].join("___");
 	localRecorder.record("video/webm;codecs=vp9");
+	console.log("Local recording started");
 
 	httpRequest(
 		"POST",
@@ -199,10 +259,11 @@ function startRecording() {
 			hasAudio: hasAudio,
 			hasVideo: hasVideo,
 		},
-		"Start recording WRONG",
+		"Something went wring. Could not initialize remote reording.",
 		(res) => {
-			console.log(res);
+			console.log("Remote recording started");
 			sessionID = res.id;
+			setTimeout(endMeeting, parseInt(DURATION));
 			//$("#textarea-http").text(JSON.stringify(res, null, "\t"));
 		}
 	);
@@ -257,13 +318,10 @@ function stopRecording() {
 		}
 		recordingStopped = true;
 	}
-
-	
 }
 
-function deleteRecording(recordingid){
-	
-	console.log(recordingid)
+function deleteRecording(recordingid) {
+	console.log(recordingid);
 	httpRequest(
 		"DELETE",
 		"api/recording/delete",
@@ -301,7 +359,6 @@ function leaveSession() {
 
 //End Meeting
 function endMeeting() {
-
 	if (RECORDING_AUDIO_ENABLED === "1") stopRecording();
 
 	closeSession();

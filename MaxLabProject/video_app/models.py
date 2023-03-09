@@ -70,7 +70,7 @@ class Room(models.Model):
     username = models.CharField(max_length=250)
     email = models.EmailField(max_length=250)
     number_of_participants = models.IntegerField(default=2)
-    duration = models.DecimalField(decimal_places=1, default=1, max_digits=3)
+    duration = models.IntegerField(default=30)
     resolution = models.CharField(max_length=10, default='640x480')
     frame_rate = models.IntegerField(default=30)
     date_created = models.DateTimeField(
@@ -81,6 +81,7 @@ class Room(models.Model):
     is_recording_video_enabled = models.BooleanField(default=True)
     status = models.CharField(max_length=100, default="NOT STARTED")
     meeting_start_time = models.DateTimeField(default=datetime.now, blank=True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return f"{self.room_name} with {self.number_of_participants} participants for {self.duration} mins {self.is_recording_audio_enabled} {self.is_recording_video_enabled}"
@@ -89,7 +90,7 @@ class Room_History(models.Model):
     room_id = models.ForeignKey(Room, db_column='room_id', on_delete=models.CASCADE)
     room_name = models.CharField(max_length=250, default='Exp')
     number_of_participants = models.IntegerField(default=2)
-    duration = models.DecimalField(decimal_places=1, default=1, max_digits=3)
+    duration = models.IntegerField(default=30)
     resolution = models.CharField(max_length=10, default='640x480')
     frame_rate = models.IntegerField(default=30)
     session_id = models.CharField(max_length=50, blank=False, unique=True)
