@@ -8,6 +8,7 @@
     "dotenv": "^16.0.3",
     "ejs": "^3.1.6",
     "express": "4.17.1",
+    "fix-webm-duration": "^1.0.5",
     "moment": "^2.29.1",
     "mysql2": "^2.3.0",
     "openvidu-node-client": "2.18.0",

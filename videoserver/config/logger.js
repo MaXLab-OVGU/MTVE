@@ -9,7 +9,10 @@ if (!fs.existsSync(logDir)) {
 }
 
 const now = new Date();
-const logLevel = "info";
+var logLevel = "debug";
+if (env == "prod") {
+	logLevel = "info";
+}
 
 var logger = createLogger({
 	level: logLevel,
