@@ -11,6 +11,20 @@ var meeting_start_time = null;
 var publisher;
 var localRecorder;
 var recordingStopped = false;
+var numberOfStreamsPlaying = 0;
+var startTime;
+
+// function randomDelay() {
+// 	// Adds a random delay of upto 1 sec
+// 	max = 10;
+// 	min = 0;
+// 	delayInMilliseconds = Math.floor(Math.random() * (max - min + 1) + min) * 100;
+
+// 	setTimeout(function () {
+// 		console.log("Delay of - " + delayInMilliseconds + " ms");
+// 		joinSession();
+// 	}, delayInMilliseconds);
+// }
 
 const joinSession = () => {
 	$("#join").show();
@@ -20,6 +34,7 @@ const joinSession = () => {
 	$("#permission-denied").hide();
 	sessionName = ROOM_ID;
 	console.log(sessionName);
+
 	getToken(() => {
 		//Get an OpenVidu object ---
 		OV = new OpenVidu();
@@ -30,35 +45,49 @@ const joinSession = () => {
 		//Init a session ---
 		session = OV.initSession();
 
-		session.on("connectionCreated", (event) => {});
+		session.on("connectionCreated", (event) => {
+			console.log("connectionCreated");
+		});
 
-		session.on("connectionDestroyed", (event) => {});
+		session.on("connectionDestroyed", (event) => {
+			console.log("connectionDestroyed");
+		});
 
 		// On every new Stream received...
 		session.on("streamCreated", (event) => {
 			// Subscribe to the Stream to receive it
 			// HTML video will be appended to element with 'video-container' id
 			var subscriber = session.subscribe(event.stream, "video-container");
+			console.log("Session subscribed");
 
 			// When the HTML video has been appended to DOM...
 			subscriber.on("videoElementCreated", (event) => {
-				// updateNumVideos(1);
+				console.log("Subscriber Video Element Created");
 			});
 
 			// When the HTML video has been appended to DOM...
 			subscriber.on("videoElementDestroyed", (event) => {
 				// Add a new HTML element for the user's name and nickname over its video
-				// updateNumVideos(-1);
+				console.log("Subscriber Video Element Destroyed");
 			});
 
 			// When the subscriber stream has started playing media...
-			subscriber.on("streamPlaying", (event) => {});
+			subscriber.on("streamPlaying", (event) => {
+				console.log("Subscriber Stream Playing");
+				numberOfStreamsPlaying = numberOfStreamsPlaying + 1;
+				console.log(numberOfStreamsPlaying);
+			});
 		});
 
-		session.on("streamDestroyed", (event) => {});
+		session.on("streamDestroyed", (event) => {
+			console.log("Stream Destroyed");
+		});
 
 		session.on("sessionDisconnected", (event) => {
-			if (RECORDING_AUDIO_ENABLED === "1") stopRecording();
+			console.log("streamDestroyed");
+			if (RECORDING_AUDIO_ENABLED === "1") {
+				stopLocalRecording();
+			}
 			$("#join").hide();
 			$("#session").hide();
 			$("#endmeeting").show();
@@ -80,7 +109,7 @@ const joinSession = () => {
 			.connect(token)
 			.then(() => {
 				handler = setInterval(function () {
-					// Check every 3 seconds of required number of participants joined the meeting
+					// Check every 1 second if required number of participants joined the meeting
 					fetchNumberofconnections(function (session_info) {
 						if (
 							session_info.session_details.connections.numberOfElements >=
@@ -123,28 +152,39 @@ const joinSession = () => {
 
 							// When our HTML video has been added to DOM...
 							publisher.on("videoElementCreated", (event) => {
-								// updateNumVideos(1);
 								$(event.element).prop("muted", true); // Mute local video
-								setTimeout(endMeeting, parseInt(DURATION));
-								if (RECORDING_AUDIO_ENABLED === "1") startRecording();
+								startRemoteRecording();
+								numberOfStreamsPlaying = numberOfStreamsPlaying + 1;
+								internalHandler = setInterval(function () {
+									if (numberOfStreamsPlaying >= parseInt(REQUIRED_PARTICIPANTS)) {
+										clearInterval(internalHandler);
+										if (RECORDING_AUDIO_ENABLED === "1") {
+											startLocalRecording();
+										} else {
+											setTimeout(endMeeting, parseInt(DURATION));
+										}
+									}
+								}, 1000);
 							});
 
 							// When the HTML video has been appended to DOM...
 							publisher.on("videoElementDestroyed", (event) => {
-								// Add a new HTML element for the user's name and nickname over its video
-								// updateNumVideos(-1);
+								console.log("Video Element Destroed")
 							});
 
 							// When the publisher stream has started playing media...
-							publisher.on("streamPlaying", (event) => {});
+							publisher.on("streamPlaying", (event) => {
+								console.log("Publisher Stream playing");
+							});
 
 							//Set Streamid
-							publisher.stream.streamId = ROOM_ID + '_' + ROOM_NAME + '_' + meeting_start_time;
-							console.log(publisher.stream.streamId)
+							publisher.stream.streamId =
+								ROOM_ID + "_" + ROOM_NAME + "_" + meeting_start_time;
+							console.log(publisher.stream.streamId);
 
 							//Publish your stream
 							session.publish(publisher);
-
+							console.log("Stream Published");
 						} else {
 							console.log("Waiting for users");
 						}
@@ -164,31 +204,10 @@ const joinSession = () => {
 
 //-----------------------------RECORDING API-----------------------------------------------------
 //Recording - Start
-// function startRecording(event) {
-//     recorder.disableLogs = true
-//     recorder.addStream(event.element.srcObject);
-//     recorder.mediaType = {
-//         recorderType: RecordRTC.StereoAudioRecorder,
-//         audio: RECORDING_AUDIO_ENABLED === '1',
-//         video: RECORDING_VIDEO_ENABLED === '1',
-
-//     };
-//     recorder.mimeType = {
-//         audio: 'audio/wav',
-//         video: 'video/webm',
-//         disableLogs: true,
-//     };
-//     console.log("recording started");
-//     recorder.startRecording();
-// }
-
-function startRecording() {
+function startRemoteRecording() {
 	var outputMode = "COMPOSED";
 	var hasAudio = RECORDING_AUDIO_ENABLED === "1";
 	var hasVideo = RECORDING_VIDEO_ENABLED === "1";
-
-	localRecorder = OV.initLocalRecorder(publisher.stream);
-	localRecorder.record("video/webm;codecs=vp9");
 
 	httpRequest(
 		"POST",
@@ -199,84 +218,76 @@ function startRecording() {
 			hasAudio: hasAudio,
 			hasVideo: hasVideo,
 		},
-		"Start recording WRONG",
+		"Something went wrong. Could not initialize remote reording.",
 		(res) => {
-			console.log(res);
+			console.log("Remote recording started");
 			sessionID = res.id;
-			//$("#textarea-http").text(JSON.stringify(res, null, "\t"));
 		}
 	);
+}
+
+function startLocalRecording() {
+	localRecorder = OV.initLocalRecorder(publisher.stream);
+	var localRecordIdArray = localRecorder.id.split("_");
+
+	localRecorder.id = [
+		[ROOM_ID, ROOM_NAME, meeting_start_time].join("_"),
+		[
+			localRecordIdArray[localRecordIdArray.length - 3],
+			localRecordIdArray[localRecordIdArray.length - 2],
+			localRecordIdArray[localRecordIdArray.length - 1],
+		].join("_"),
+	].join("___");
+	localRecorder.record("video/webm;codecs=vp9");
+	startTime = Date.now();
+	console.log("Local recording started");
+	setTimeout(endMeeting, parseInt(DURATION));
 }
 
 //Recording - Stop
-// function stopRecording() {
-// 	recorder.stopRecording(function () {
-// 		var blobs =
-// 			RECORDING_VIDEO_ENABLED === "1" ? recorder.getBlob().video : recorder.getBlob().audio;
-// 		userID = Math.floor(Math.random() * 9000);
-// 		getSeekableBlob(blobs, function (seekable_blob) {
-// 			var formData = new FormData();
-// 			formData.append("blob", seekable_blob, "test_video");
-// 			formData.append("blob_type", "video");
-// 			formData.append("userId", userID);
-// 			formData.append("roomId", ROOM_ID);
-// 			formData.append("meeting_start_time", meeting_start_time);
-// 			formData.append("transcriptionEnabled", TRANSCRIPTION_ENABLED);
-
-// 			console.log("sending video " + userID);
-
-// 			transcription("/transcription/start", formData, function () {
-// 				console.log("Video successfully uploaded!");
-// 			});
-// 		});
-// 	});
-// }
-
-function stopRecording() {
-	// var forceRecordingId = sessionID;
-	// httpRequest(
-	// 	"POST",
-	// 	"api/recording/stop",
-	// 	{
-	// 		recording: forceRecordingId,
-	// 	},
-	// 	"Stop recording WRONG",
-	// 	(res) => {
-	// 		console.log(res);
-	// 		$("#textarea-http").text(JSON.stringify(res, null, "\t"));
-	// 	}
-	// );
-
+function stopLocalRecording() {
 	if (!recordingStopped) {
 		if (localRecorder.state == "RECORDING") {
 			localRecorder.stop().then((res) => {
-				localRecorder.download();
+				console.log("Local Recording stopped");
+				downloadLocalRecording();
 			});
 		} else if (localRecorder.state == "FINISHED") {
-			localRecorder.download();
+			downloadLocalRecording();
 		}
 		recordingStopped = true;
 	}
-
-	
 }
 
-function deleteRecording(recordingid){
-	
-	console.log(recordingid)
-	httpRequest(
-		"DELETE",
-		"api/recording/delete",
-		{
-			recording: recordingid,
-		},
-		"Delete recording WRONG",
-		(res) => {
-			console.log("DELETE ok");
-			$("delete-status").text("Recording deleted successfully");
-		}
-	);
+function downloadLocalRecording() {
+
+	buggyBlob = localRecorder.getBlob();
+	videoDuration = Date.now() - startTime;
+
+	console.log("Fixing Local recorded video");
+
+	ysFixWebmDuration(buggyBlob, videoDuration, { logger: false }).then(function (fixedBlob) {
+		localRecorder.blob = fixedBlob;
+		console.log("Downloading fixed video");
+		localRecorder.download();
+	});
 }
+
+// function deleteRecording(recordingid) {
+// 	console.log(recordingid);
+// 	httpRequest(
+// 		"DELETE",
+// 		"api/recording/delete",
+// 		{
+// 			recording: recordingid,
+// 		},
+// 		"Delete recording WRONG",
+// 		(res) => {
+// 			console.log("DELETE ok");
+// 			$("delete-status").text("Recording deleted successfully");
+// 		}
+// 	);
+// }
 
 //Call Transcription Function
 async function transcription(url, data, callback) {
@@ -301,8 +312,7 @@ function leaveSession() {
 
 //End Meeting
 function endMeeting() {
-
-	if (RECORDING_AUDIO_ENABLED === "1") stopRecording();
+	if (RECORDING_AUDIO_ENABLED === "1") stopLocalRecording();
 
 	closeSession();
 }
@@ -423,30 +433,11 @@ events = "";
 window.onbeforeunload = function () {
 	// Gracefully leave session
 	if (session) {
-		if (RECORDING_AUDIO_ENABLED === "1") stopRecording();
+		if (RECORDING_AUDIO_ENABLED === "1") stopLocalRecording();
 		removeUser();
 		leaveSession();
 	}
 };
-
-// function updateNumVideos(i) {
-//     numVideos += i;
-//     $('video').removeClass();
-//     switch (numVideos) {
-//         case 1:
-//             $('video').addClass('two');
-//             break;
-//         case 2:
-//             $('video').addClass('two');
-//             break;
-//         case 3:
-//             $('video').addClass('three');
-//             break;
-//         case 4:
-//             $('video').addClass('four');
-//             break;
-//     }
-// }
 
 function permissionDenied() {
 	$("#join").hide();

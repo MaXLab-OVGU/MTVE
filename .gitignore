@@ -1,0 +1,15 @@
+node_modules/
+__pycache__/
+logs/
+.vscode/
+.env
+cert.pem
+privkey.pem
+MaxLabProject/maxlabenv/
+Transcription/transcription_output/
+Transcription/video_files/
+Transcription/Models/
+Transcription/transcription_env/
+videoserver/config/config.js
+MaxLabProject/MaxLabProject/settings_config.py
+Backup/

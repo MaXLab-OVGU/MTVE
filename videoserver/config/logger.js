@@ -2,14 +2,17 @@ const fs = require("fs");
 const { createLogger, transports, format } = require("winston");
 
 const env = process.env.NODE_ENV;
-const logDir = "logs";
+const logDir = "../logs";
 
 if (!fs.existsSync(logDir)) {
 	fs.mkdirSync(logDir);
 }
 
 const now = new Date();
-const logLevel = "info";
+var logLevel = "debug";
+if (env == "prod") {
+	logLevel = "info";
+}
 
 var logger = createLogger({
 	level: logLevel,
@@ -33,7 +36,7 @@ var logger = createLogger({
 	transports: [
 		new transports.Console(),
 		new transports.File({
-			filename: `${logDir}/app.log`,
+			filename: `${logDir}/videoserver.log`,
 		}),
 	],
 });

@@ -25,16 +25,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_random_id():
-    range_start = 10 ** (6 - 1)
-    range_end = (10**6) - 1
-    return randint(range_start, range_end)
-
-
 def home_screen_view(request):
     context = {}
 
     user = request.user
+    
     if user.is_authenticated:
         logger.info("User already logged in. Redirecting to experiments page.")
         return redirect("experiments")
@@ -49,6 +44,7 @@ def home_screen_view(request):
             if user:
                 context = {"email": email}
                 login(request, user)
+                logger.info("User login successful. Redirecting to experiments page.")
                 return redirect("experiments")
 
     else:
@@ -125,11 +121,11 @@ def experiments_view(request, message=None, roomid=None):
     context["email"] = request.user.email
     user = Account.objects.get(email=request.user.email)
     if user.is_admin:
-        context["exps"] = Room.objects.order_by("-room_id").all()
+        context["exps"] = Room.objects.order_by("-room_id").filter(is_deleted=False)
         context["admin"] = True
     else:
         context["exps"] = Room.objects.order_by("-room_id").filter(
-            email=request.user.email
+            email=request.user.email, is_deleted=False
         )
 
     if message is not None:
@@ -154,12 +150,12 @@ def experiments_history_view(request, message=None, roomid=None):
     if user.is_admin:
         context["exps_hist"] = Room_History.objects.order_by(
             "-meeting_start_time"
-        ).all()
+        ).filter(room_id__is_deleted=False)
         context["admin"] = True
     else:
         context["exps_hist"] = Room_History.objects.order_by(
             "-meeting_start_time"
-        ).filter(room_id__email=request.user.email)
+        ).filter(room_id__email=request.user.email, room_id__is_deleted=False)
     return render(request, "experiments/experimentsHistory.html", context)
 
 
@@ -394,11 +390,9 @@ def clone_meeting_view(request, room_id):
 
 
 def delete_meeting_view(request, roomid, withrecording="False"):
-    print("asdas", roomid)
     if not request.user.is_authenticated:
         return redirect("home")
     # deleting room
-    Room.objects.filter(room_id=roomid).delete()
-    if withrecording == "True":
-        download_utility(roomid).deleteRecordings()
+    Room.objects.filter(room_id=roomid).update(is_deleted=True)
+
     return redirect("experiments")

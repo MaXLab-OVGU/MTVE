@@ -11,6 +11,7 @@ var fs = require("fs");
 var https = require("https");
 var bodyParser = require("body-parser"); // Pull information from HTML POST (express4)
 const dotenv = require("dotenv");
+const fixWebmDuration = require("fix-webm-duration");
 
 // Initializing app and config
 var app = express(); // Create our app with express
