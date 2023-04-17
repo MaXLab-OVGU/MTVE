@@ -4,15 +4,16 @@ var session;
 var sessionName;
 var sessionID;
 var token;
-var numVideos = 0;
+// var numVideos = 0;
 var handler = 0;
-var recorder = new MRecordRTC();
+// var recorder = new MRecordRTC();
 var meeting_start_time = null;
 var publisher;
 var localRecorder;
 var recordingStopped = false;
 var numberOfStreamsPlaying = 0;
 var startTime;
+var fileName;
 
 // function randomDelay() {
 // 	// Adds a random delay of upto 1 sec
@@ -169,7 +170,7 @@ const joinSession = () => {
 
 							// When the HTML video has been appended to DOM...
 							publisher.on("videoElementDestroyed", (event) => {
-								console.log("Video Element Destroed")
+								console.log("Video Element Destroyed");
 							});
 
 							// When the publisher stream has started playing media...
@@ -178,8 +179,12 @@ const joinSession = () => {
 							});
 
 							//Set Streamid
-							publisher.stream.streamId =
-								ROOM_ID + "_" + ROOM_NAME + "_" + meeting_start_time;
+							fileName = ROOM_ID + "_" + ROOM_NAME + "_" + meeting_start_time;
+
+							fileName = fileName.replace(/:/g, "_");
+
+							publisher.stream.streamId = fileName;
+
 							console.log(publisher.stream.streamId);
 
 							//Publish your stream
@@ -227,17 +232,21 @@ function startRemoteRecording() {
 }
 
 function startLocalRecording() {
+	// Initialize localRecorder
 	localRecorder = OV.initLocalRecorder(publisher.stream);
-	var localRecordIdArray = localRecorder.id.split("_");
 
+	// Update the recording name
+	var localRecordIdArray = localRecorder.id.split("_");
 	localRecorder.id = [
-		[ROOM_ID, ROOM_NAME, meeting_start_time].join("_"),
+		fileName,
 		[
 			localRecordIdArray[localRecordIdArray.length - 3],
 			localRecordIdArray[localRecordIdArray.length - 2],
 			localRecordIdArray[localRecordIdArray.length - 1],
 		].join("_"),
 	].join("___");
+
+	// Start recording
 	localRecorder.record("video/webm;codecs=vp9");
 	startTime = Date.now();
 	console.log("Local recording started");
@@ -250,17 +259,16 @@ function stopLocalRecording() {
 		if (localRecorder.state == "RECORDING") {
 			localRecorder.stop().then((res) => {
 				console.log("Local Recording stopped");
-				downloadLocalRecording();
+				saveLocalRecording();
 			});
 		} else if (localRecorder.state == "FINISHED") {
-			downloadLocalRecording();
+			saveLocalRecording();
 		}
 		recordingStopped = true;
 	}
 }
 
-function downloadLocalRecording() {
-
+function saveLocalRecording() {
 	buggyBlob = localRecorder.getBlob();
 	videoDuration = Date.now() - startTime;
 
@@ -268,10 +276,29 @@ function downloadLocalRecording() {
 
 	ysFixWebmDuration(buggyBlob, videoDuration, { logger: false }).then(function (fixedBlob) {
 		localRecorder.blob = fixedBlob;
-		console.log("Downloading fixed video");
-		localRecorder.download();
+		if (DOWNLOAD_LOCAL_RECORDING == "true") {
+			console.log("Downloading fixed video");
+			localRecorder.download();
+		}
+		if (UPLOAD_LOCAL_RECORDING == "true") {
+			console.log("Uploading fixed video");
+			localRecorder.uploadAsMultipartfile("/meeting/api/recording/save");
+		}
 	});
 }
+
+// function uploadLocalRecording() {
+// 	buggyBlob = localRecorder.getBlob();
+// 	videoDuration = Date.now() - startTime;
+
+// 	console.log("Fixing Local recorded video");
+
+// 	ysFixWebmDuration(buggyBlob, videoDuration, { logger: false }).then(function (fixedBlob) {
+// 		localRecorder.blob = fixedBlob;
+// 		console.log("Uploading fixed video");
+// 		localRecorder.uploadAsMultipartfile("/meeting/api/recording/save");
+// 	});
+// }
 
 // function deleteRecording(recordingid) {
 // 	console.log(recordingid);
