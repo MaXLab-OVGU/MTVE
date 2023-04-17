@@ -12,6 +12,9 @@ var https = require("https");
 var bodyParser = require("body-parser"); // Pull information from HTML POST (express4)
 const dotenv = require("dotenv");
 const fixWebmDuration = require("fix-webm-duration");
+const path = require("path");
+const HttpStatus = require("http-status-codes");
+const Busboy = require("busboy");
 
 // Initializing app and config
 var app = express(); // Create our app with express
@@ -262,6 +265,34 @@ app.post("/meeting/api/recording/stop", function (req, res) {
 		.catch((error) => res.status(400).send(error.message));
 });
 
+// Save recording
+// Endpoint to handle video file uploads
+app.post("/meeting/api/recording/save", function (req, res) {
+	logger.info("File Upload Api");
+	var busboy = Busboy({
+		headers: req.headers,
+	});
+
+	busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
+		file.on("data", function (data) {
+			// console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+		});
+		file.on("end", function () {
+			console.log("File [" + fieldname + "] Finished");
+		});
+		var saveTo = path.join("upload", "videos", filename.filename);
+		var outStream = fs.createWriteStream(saveTo);
+		file.pipe(outStream);
+	});
+	busboy.on("finish", function () {
+		res.writeHead(HttpStatus.OK, {
+			Connection: "close",
+		});
+		res.end("That's all folks!");
+	});
+	return req.pipe(busboy);
+});
+
 // Delete recording
 app.get("/delete/:recordingId", (req, res) => {
 	// if (req.params.session != "style.css") {
@@ -409,7 +440,13 @@ function getMeetingDetails(session_name, res) {
 			} else {
 				meetingDetails[session_name] = rows;
 				console.log(rows);
-				res.render("index.ejs", { data: { roomId: session_name, roomDetails: rows } });
+				res.render("index.ejs", {
+					data: { roomId: session_name, roomDetails: rows },
+					localRecording: {
+						upload: config.UPLOAD_LOCAL_RECORDING,
+						download: config.DOWNLOAD_LOCAL_RECORDING,
+					},
+				});
 			}
 		}
 	});

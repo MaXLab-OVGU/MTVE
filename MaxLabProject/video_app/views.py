@@ -222,7 +222,7 @@ def reset_user_password(request, email, token):
             user.save()
             context[
                 "success_message"
-            ] = "Password reset successfull.Please login with you new password"
+            ] = "Password reset successfull. Please login with you new password"
             return render(request, "new_accounts/reset-user-password.html", context)
         else:
             return render(request, "new_accounts/passwordFailure.html")
