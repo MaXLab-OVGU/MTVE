@@ -48,7 +48,7 @@ app.locals.videoWidth = (NO_OF_PARTICIPANTS) => {
 };
 
 app.set("view engine", "ejs");
-app.use(express.static("public"));
+app.use("/meeting/static", express.static(path.join(__dirname, "public")));
 app.use(
 	bodyParser.urlencoded({
 		extended: "true",
@@ -280,7 +280,7 @@ app.post("/meeting/api/recording/save", function (req, res) {
 		file.on("end", function () {
 			console.log("File [" + fieldname + "] Finished");
 		});
-		var saveTo = path.join("upload", "videos", filename.filename);
+		var saveTo = path.join(config.LOCAL_RECORDING_FOLDER, filename.filename);
 		var outStream = fs.createWriteStream(saveTo);
 		file.pipe(outStream);
 	});
