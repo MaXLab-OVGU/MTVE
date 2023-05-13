@@ -1,164 +1,236 @@
 {% extends 'base.html' %} {% block content %}
 <style>
-	th {
-		border: 1px solid black;
-		border-collapse: collapse;
-		text-align: center;
-	}
-	td {
-		text-align: center;
-	}
+    th {
+        border: 1px solid black;
+        border-collapse: collapse;
+        text-align: center;
+    }
+    td {
+        text-align: center;
+    }
 </style>
 
 <div class="container-fluid" style="margin-top: 40px; width: 100%">
-	<table class="table table-hover table-striped">
-		<thead>
-			<tr>
-				<th>Room ID#</th>
-				{% if admin%}
-				<th>User Name</th>
-				{% endif%}
-				<th>Room Name</th>
-				<th>Participants</th>
-				<th>Duration (Seconds)</th>
-				<th>Video</th>
-				<th>Configuration</th>
-				<th>Stage</th>
-				<th>Link</th>
-				<th>Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for exp in exps %}
-			<tr>
-				<td>{{exp.room_id}}</td>
-				{% if admin%}
-				<td>{{exp.username}}</td>
-				{% endif%}
+    <table class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Room ID#</th>
+                {% if admin%}
+                <th>User Name</th>
+                {% endif%}
+                <th>Room Name</th>
+                <th>Participants</th>
+                <th>Duration (Seconds)</th>
+                <th>Video</th>
+                <th>Configuration</th>
+                <th>Stage</th>
+                <th>Link</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in exps %}
+            <tr>
+                <td>{{exp.room_id}}</td>
+                {% if admin%}
+                <td>{{exp.username}}</td>
+                {% endif%}
 
-				<td>{{exp.room_name}}</td>
-				<td>{{exp.number_of_participants}}</td>
-				<td>{{exp.duration}}</td>
-				<td>{{exp.resolution}} @ {{exp.frame_rate}} fps</td>
-				<td>
-					{% if exp.is_audio_enabled %}
-					<a data-toggle="tooltip" title="Audio" class="fa fa-microphone"></a>
-					{% endif %} {% if exp.is_video_enabled %}
-					<a data-toggle="tooltip" title="Video" class="fa fa-video-camera"></a>
-					{% endif %} {% if exp.is_recording_audio_enabled%}
-					<a data-toggle="tooltip" title="Recording" class="fa fa-dot-circle-o"></a>
-					{% endif %}
-				</td>
-				<td class="font-weight-bold">{{exp.status}}</td>
-				<td>
-					{% comment %}
-					<a
-						class="p-2 text-dark"
-						href="{{ VIDEO_SERVER_URL }}{{exp.room_id}}"
-						target="_blank"
-						>Join Meeting</a
-					>
-					{% endcomment %}
-					<button
-						class="btn btn-outline-primary dummy js-copy"
-						data-copy="{{ VIDEO_SERVER_URL }}{{exp.room_id}}"
-						title="Copy Meeting link to clipboard"
-					>
-						<i class="fa-regular fa-copy" alt="Copy to clipboard"></i>
-					</button>
-				</td>
-				<td>
-					{% if exp.status == "NOT STARTED" %}
-					<a
-						data-toggle="tooltip"
-						title="Edit Meeting"
-						href="{% url 'edit_room' exp.room_id %}"
-						class="fa fa-pencil"
-					></a>
-					{% endif %}
-					<a
-						data-toggle="tooltip"
-						title="Clone Meeting"
-						href="{% url 'clone_room' exp.room_id %}"
-						class="fa fa-clone"
-					></a>
-					<a
-						data-toggle="tooltip"
-						title="Delete Meeting"
-						id="deletebtn"
-						href="{% url 'experiments' message='delete' roomid=exp.room_id %}"
-						date-roomid="{{exp.room_id}}"
-						class="fa fa-times-circle"
-					></a>
-				</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+                <td>{{exp.room_name}}</td>
+                <td>{{exp.number_of_participants}}</td>
+                <td>{{exp.duration}}</td>
+                <td>{{exp.resolution}} @ {{exp.frame_rate}} fps</td>
+                <td>
+                    {% if exp.is_audio_enabled %}
+                    <a
+                        data-toggle="tooltip"
+                        title="Audio"
+                        class="fa fa-microphone"
+                        style="text-decoration: none"
+                    ></a>
+                    {% endif %} {% if exp.is_video_enabled %}
+                    <a
+                        data-toggle="tooltip"
+                        title="Video"
+                        class="fa fa-video-camera"
+                        style="text-decoration: none"
+                    ></a>
+                    {% endif %} {% if exp.is_recording_audio_enabled%}
+                    <a
+                        data-toggle="tooltip"
+                        title="Recording"
+                        class="fa fa-dot-circle-o"
+                        style="text-decoration: none"
+                    ></a>
+                    {% endif %}
+                </td>
+                <td class="font-weight-bold">{{exp.status}}</td>
+                <td>
+                    {% comment %}
+                    <a
+                        class="p-2 text-dark"
+                        href="{{ VIDEO_SERVER_URL }}{{exp.room_id}}"
+                        target="_blank"
+                        >Join Meeting</a
+                    >
+                    {% endcomment %}
+                    <button
+                        class="btn btn-outline-primary dummy js-copy"
+                        data-copy="{{ VIDEO_SERVER_URL }}{{exp.room_id}}"
+                        title="Copy Meeting link to clipboard"
+                    >
+                        <i
+                            class="fa-regular fa-copy"
+                            alt="Copy to clipboard"
+                        ></i>
+                    </button>
+                    <a
+                        href="{{ END_MEETING_URL }}{{exp.room_id}}"
+                        target="_blank"
+                        data-toggle="tooltip"
+                    >
+                        <button
+                            class="btn btn-outline-danger dummy js-copy"
+                            title="End current session"
+                        >
+                            <i
+                                class="fa-solid fa-phone-slash"
+                                color="red"
+                                alt="End Meeting"
+                            ></i>
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    {% if exp.status == "NOT STARTED" %}
+                    <a
+                        href="{% url 'edit_room' exp.room_id %}"
+                        data-toggle="tooltip"
+                        style="text-decoration: none"
+                    >
+                        <button
+                            class="btn btn-outline-primary dummy js-copy"
+                            title="Edit Meeting"
+                        >
+                            <i class="fa fa-pencil" alt="Edit Meeting"></i>
+                        </button>
+                    </a>
+                    {% endif %}
+                    <a
+                        href="{% url 'clone_room' exp.room_id %}"
+                        data-toggle="tooltip"
+                        style="text-decoration: none"
+                    >
+                        <button
+                            class="btn btn-outline-primary dummy js-copy"
+                            title="Clone Meeting"
+                        >
+                            <i
+                                class="fa-solid fa-clone"
+                                alt="Clone Meeting"
+                            ></i>
+                        </button>
+                    </a>
+                    <a
+                        href="{% url 'experiments' message='delete' roomid=exp.room_id %}"
+                        data-toggle="tooltip"
+                        id="deletebtn"
+                        date-roomid="{{exp.room_id}}"
+                        style="text-decoration: none"
+                    >
+                        <button
+                            class="btn btn-outline-danger dummy js-copy"
+                            title="Delete Meeting"
+                        >
+                            <i
+                                class="fa fa-times-circle"
+                                alt="Delete Meeting"
+                                color="red"
+                            ></i>
+                        </button>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 <div
-	class="modal fade"
-	style="display: none"
-	id="deleteModal"
-	tabindex="-1"
-	role="dialog"
-	aria-labelledby="deleteModalLabel"
-	aria-hidden="true"
+    class="modal fade"
+    style="display: none"
+    id="deleteModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="deleteModalLabel"
+    aria-hidden="true"
 >
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h4 class="modal-title" id="deleteModalLabel">Delete Meeting</h4>
-				<a href={% url 'experiments' %} class="close"><button class="close" type="button" aria-hidden="true">&times;</button></a>
-			</div>
-			<div class="modal-body">
-				<h5 class="lead">Do you really wish to delete the meeting?</h5>
-			</div>
-			<div class="modal-footer">
-				{% if delete_roomid %}
-				{% comment %} <a href={% url 'delete' roomid=delete_roomid withrecording=True %} id="deleteRecordingbtn" role="button" class="btn btn-primary">Delete with Recordings</a> {% endcomment %}
-				<a href={% url 'delete' roomid=delete_roomid withrecording=False %} id="deleteMeetingbtn" role="button" class="btn btn-danger">Delete</a>
-				{% endif %}
-				<a href={% url 'experiments' %} class="btn btn-primary">Close</a>
-			</div>
-		</div>
-	</div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="deleteModalLabel">
+                    Delete Meeting
+                </h4>
+                <a href="{% url 'experiments' %}" class="close"
+                    ><button class="close" type="button" aria-hidden="true">
+                        &times;
+                    </button></a
+                >
+            </div>
+            <div class="modal-body">
+                <h5 class="lead">Do you really wish to delete the meeting?</h5>
+            </div>
+            <div class="modal-footer">
+                {% if delete_roomid %}
+                <a
+                    href="{% url 'delete' roomid=delete_roomid withrecording=False %}"
+                    id="deleteMeetingbtn"
+                    role="button"
+                    class="btn btn-danger"
+                    >Delete</a
+                >
+                {% endif %}
+                <a href="{% url 'experiments' %}" class="btn btn-primary"
+                    >Close</a
+                >
+            </div>
+        </div>
+    </div>
 </div>
 <script>
-	function copyToClipboard(text, el) {
-	    var copyTest = document.queryCommandSupported("copy");
-	    var elOriginalText = el.attr("data-original-title");
+    function copyToClipboard(text, el) {
+        var copyTest = document.queryCommandSupported("copy");
+        var elOriginalText = el.attr("data-original-title");
 
-	    if (copyTest === true) {
-	      var copyTextArea = document.createElement("textarea");
-	      copyTextArea.value = text;
-	      document.body.appendChild(copyTextArea);
-	      copyTextArea.select();
-	      try {
-	        var successful = document.execCommand("copy");
-	        var msg = successful ? "Copied!" : "Whoops, not copied!";
-	        el.attr("data-original-title", msg).tooltip("show");
-	      } catch (err) {
-	        console.log("Oops, unable to copy");
-	      }
-	      document.body.removeChild(copyTextArea);
-	      el.attr("data-original-title", elOriginalText);
-	    } else {
-	      window.prompt("Copy to clipboard: Ctrl+C or Command+C, Enter", text);
-	    }
-	}
-	document.addEventListener("DOMContentLoaded", function (event) {
-	    $(document).ready(function () {
-	      	$(".js-copy").click(function () {
-	        	var text = $(this).attr("data-copy");
-	        	var el = $(this);
-	        	copyToClipboard(text, el);
-	      	});
-	    });
-	});
-	var deleteModal = new bootstrap.Modal(document.getElementById("deleteModal"), {});
-	{% if deleteModalDisplay %}
-	    deleteModal.show();
-	{% endif %}
+        if (copyTest === true) {
+          var copyTextArea = document.createElement("textarea");
+          copyTextArea.value = text;
+          document.body.appendChild(copyTextArea);
+          copyTextArea.select();
+          try {
+            var successful = document.execCommand("copy");
+            var msg = successful ? "Copied!" : "Whoops, not copied!";
+            el.attr("data-original-title", msg).tooltip("show");
+          } catch (err) {
+            console.log("Oops, unable to copy");
+          }
+          document.body.removeChild(copyTextArea);
+          el.attr("data-original-title", elOriginalText);
+        } else {
+          window.prompt("Copy to clipboard: Ctrl+C or Command+C, Enter", text);
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function (event) {
+        $(document).ready(function () {
+          	$(".js-copy").click(function () {
+            	var text = $(this).attr("data-copy");
+            	var el = $(this);
+            	copyToClipboard(text, el);
+          	});
+        });
+    });
+    var deleteModal = new bootstrap.Modal(document.getElementById("deleteModal"), {});
+    {% if deleteModalDisplay %}
+        deleteModal.show();
+    {% endif %}
 </script>
 {% endblock content %}

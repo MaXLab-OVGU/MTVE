@@ -1,118 +1,154 @@
 <html>
-	<head>
-		<title>MaxLab Meetings</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8" />
-		<!-- Bootstrap -->
-		<link
-			rel="stylesheet"
-			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-		/>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-		<link
-			rel="stylesheet"
-			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-		/>
-		<!-- Bootstrap -->
-		<!-- <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jsnlog/2.30.0/jsnlog.min.js"></script> -->
-		<script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
-		<script src="https://www.webrtc-experiment.com/EBML.js"></script>
-		<!-- <link rel="styleSheet" href="style.css" type="text/css" media="screen"> -->
-		<script defer>
-			const ROOM_ID = "<%= data.roomId %>";
-			const ROOM_DETAILS = "<%= data %>";
-			const ROOM_NAME = "<%= data.roomDetails.room_name %>";
-			const AUDIO_ENABLED = "<%= data.roomDetails.is_audio_enabled %>";
-			const VIDEO_ENABLED = "<%= data.roomDetails.is_video_enabled %>";
-			const DURATION = "<%= data.roomDetails.duration * 1000 %>";
-			const RESOLUTION = "<%= data.roomDetails.resolution %>";
-			const FRAME_RATE = "<%= data.roomDetails.frame_rate %>";
-			const RECORDING_AUDIO_ENABLED = "<%= data.roomDetails.is_recording_audio_enabled %>";
-			const RECORDING_VIDEO_ENABLED = "<%= data.roomDetails.is_recording_video_enabled %>";
-			const REQUIRED_PARTICIPANTS = "<%= data.roomDetails.number_of_participants %>";
-			const UPLOAD_LOCAL_RECORDING = "<%= localRecording.upload %>";
-			const DOWNLOAD_LOCAL_RECORDING = "<%= localRecording.download %>";
-		</script>
-		<script src="/meeting/static/openvidu-browser-2.18.0.js"></script>
-		<script src="/meeting/static/app.js"></script>
-		<script src="/meeting/static/fix-webm-duration.js"></script>
-		<script>
-			$(document).ready(function () {
-				$('[data-toggle="tooltip"]').tooltip({
-					html: true,
-				});
-			});
-		</script>
-		<style>
-			#video-container {
-				display: flex;
-				justify-content: center;
-				flex-wrap: wrap;
-			}
-			video {
-				height: <%=videoHeight(data.roomDetails.number_of_participants) %>vh;
-				width: <%=videoWidth(data.roomDetails.number_of_participants) %>%;
-				object-fit: cover;
-				padding: 8px;
-			}
-			#logo {
-				width: 50%;
-			}
-		</style>
-	</head>
-	<body onload="joinSession()">
-		<div id="main-container">
-			<div id="join" style="display: none">
-				<div
-					class="d-flex flex-column min-vh-100 justify-content-center align-items-center"
-				>
-					<div class="jumbotron flex-grow-0 flex-shrink-1" id="gateway">
-						<img src="/meeting/static/MTV.svg" />
-						<p class="text-center display-4">Waiting for users to join</p>
-						<div class="text-center">
-							<div class="spinner-border" role="status">
-								<span class="sr-only">Loading...</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div id="session" style="display: none">
-				<div id="video-container" class="col-md-12"></div>
-				<div
-					id="meeting-notification"
-					aria-live="polite"
-					aria-atomic="true"
-					style="position: relative; min-height: 200px"
-					style="display: none"
-				>
-					<div class="toast" style="position: absolute; top: 0; right: 0">
-						<div class="toast-header">
-							<strong class="mr-auto">Bootstrap</strong>
-							<button
-								type="button"
-								class="ml-2 mb-1 close"
-								data-dismiss="toast"
-								aria-label="Close"
-							>
-								<span aria-hidden="true">&times;</span>
-							</button>
-						</div>
-						<div class="toast-body">Hello, world! This is a toast message.</div>
-					</div>
-				</div>
-			</div>
-			<div id="endmeeting" style="display: none">
-				<div
-					class="border d-flex flex-column min-vh-100 justify-content-center align-items-center"
-				>
-					<div class="jumbotron w-50 flex-grow-0 flex-shrink-1" id="gateway">
-						<img src="/meeting/static/MTV.svg" />
-						<h1 class="text-center display-4">Thank You for Participating!</h1>
-					</div>
-				</div>
-			</div>
-		</div>
-	</body>
+    <head>
+        <title>MaxLab Meetings</title>
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+            charset="utf-8"
+        />
+        <!-- Bootstrap -->
+        <link
+            rel="stylesheet"
+            href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+        />
+        <!-- Bootstrap -->
+        <!-- <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jsnlog/2.30.0/jsnlog.min.js"></script> -->
+        <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+        <script src="https://www.webrtc-experiment.com/EBML.js"></script>
+        <!-- <link rel="styleSheet" href="style.css" type="text/css" media="screen"> -->
+        <script defer>
+            const ROOM_ID = "<%= data.roomId %>";
+            const ROOM_DETAILS = "<%= data %>";
+            const ROOM_NAME = "<%= data.roomDetails.room_name %>";
+            const AUDIO_ENABLED = "<%= data.roomDetails.is_audio_enabled %>";
+            const VIDEO_ENABLED = "<%= data.roomDetails.is_video_enabled %>";
+            const DURATION = "<%= data.roomDetails.duration * 1000 %>";
+            const RESOLUTION = "<%= data.roomDetails.resolution %>";
+            const FRAME_RATE = "<%= data.roomDetails.frame_rate %>";
+            const RECORDING_AUDIO_ENABLED =
+                "<%= data.roomDetails.is_recording_audio_enabled %>";
+            const RECORDING_VIDEO_ENABLED =
+                "<%= data.roomDetails.is_recording_video_enabled %>";
+            const REQUIRED_PARTICIPANTS =
+                "<%= data.roomDetails.number_of_participants %>";
+            const UPLOAD_LOCAL_RECORDING = "<%= localRecording.upload %>";
+            const DOWNLOAD_LOCAL_RECORDING = "<%= localRecording.download %>";
+        </script>
+        <script src="/meeting/static/openvidu-browser-2.18.0.js"></script>
+        <script src="/meeting/static/app.js"></script>
+        <script src="/meeting/static/fix-webm-duration.js"></script>
+        <script>
+            $(document).ready(function () {
+                $('[data-toggle="tooltip"]').tooltip({
+                    html: true,
+                });
+            });
+        </script>
+        <style>
+            #video-container {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            video {
+                height: <%=videoHeight(data.roomDetails.number_of_participants)
+                    %>vh;
+                width: <%=videoWidth(data.roomDetails.number_of_participants)
+                    %>%;
+                object-fit: cover;
+                padding: 8px;
+            }
+            #logo {
+                width: 50%;
+            }
+        </style>
+    </head>
+    <body onload="joinSession()">
+        <div id="main-container">
+            <div id="join" style="display: none">
+                <div
+                    class="d-flex flex-column min-vh-100 justify-content-center align-items-center"
+                >
+                    <div
+                        class="jumbotron flex-grow-0 flex-shrink-1"
+                        id="gateway"
+                    >
+                        <img src="/meeting/static/MTV.svg" />
+                        <p class="text-center display-4">
+                            Waiting for users to join
+                        </p>
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="session" style="display: none">
+                <div id="video-container" class="col-md-12"></div>
+                <div
+                    id="meeting-notification"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    style="position: relative; min-height: 200px"
+                    style="display: none"
+                >
+                    <div
+                        class="toast"
+                        style="position: absolute; top: 0; right: 0"
+                    >
+                        <div class="toast-header">
+                            <strong class="mr-auto">Bootstrap</strong>
+                            <button
+                                type="button"
+                                class="ml-2 mb-1 close"
+                                data-dismiss="toast"
+                                aria-label="Close"
+                            >
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="toast-body">
+                            Hello, world! This is a toast message.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="endmeeting" style="display: none">
+                <div
+                    class="border d-flex flex-column min-vh-100 justify-content-center align-items-center"
+                >
+                    <div
+                        class="jumbotron w-50 flex-grow-0 flex-shrink-1"
+                        id="gateway"
+                    >
+                        <img src="/meeting/static/MTV.svg" />
+                        <h1 class="text-center display-4">
+                            Thank You for Participating!
+                        </h1>
+                        <p
+                            id="recordingMessageSuccess"
+                            class="text-center display-5 text-success"
+                        >
+                            Recording Uploaded Successfully
+                        </p>
+                        <p
+                            id="recordingMessageError"
+                            class="text-center display-5 text-danger"
+                        >
+                            Recording Upload Failed
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>
