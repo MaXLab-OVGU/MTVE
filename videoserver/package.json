@@ -14,6 +14,7 @@
     "moment": "^2.29.1",
     "mysql2": "^2.3.0",
     "openvidu-node-client": "2.18.0",
+    "p-queue": "^6.6.2",
     "winston": "^3.8.2"
   }
 }

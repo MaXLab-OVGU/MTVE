@@ -1,0 +1,74 @@
+<html>
+    <head>
+        <title>MaxLab Meetings</title>
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+            charset="utf-8"
+        />
+        <!-- Bootstrap -->
+        <link
+            rel="stylesheet"
+            href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+        />
+        <!-- Bootstrap -->
+        <!-- <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jsnlog/2.30.0/jsnlog.min.js"></script> -->
+        <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+        <script src="https://www.webrtc-experiment.com/EBML.js"></script>
+        <!-- <link rel="styleSheet" href="style.css" type="text/css" media="screen"> -->
+        <script defer>
+            const ROOM_ID = "<%= data.roomId %>";
+        </script>
+        <script src="/meeting/static/openvidu-browser-2.18.0.js"></script>
+        <script src="/meeting/static/app.js"></script>
+        <script src="/meeting/static/fix-webm-duration.js"></script>
+        <script>
+            $(document).ready(function () {
+                $('[data-toggle="tooltip"]').tooltip({
+                    html: true,
+                });
+            });
+        </script>
+        <style>
+            #logo {
+                width: 50%;
+            }
+        </style>
+    </head>
+
+    <body onload="closeSession(ROOM_ID)">
+        <div id="main-container">
+            <div id="endmeetingCustom">
+                <div
+                    class="border d-flex flex-column min-vh-100 justify-content-center align-items-center"
+                >
+                    <div
+                        class="jumbotron w-50 flex-grow-0 flex-shrink-1"
+                        id="gateway"
+                    >
+                        <img src="/meeting/static/MTV.svg" />
+                        <p
+                            id="endMeetingSuccess"
+                            class="text-center display-5 text-success"
+                        >
+                            Meeting ended successfully.
+                        </p>
+                        <p
+                            id="endMeetingError"
+                            class="text-center display-5 text-danger"
+                        >
+                            Failed to end meeting
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
