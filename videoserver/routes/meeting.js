@@ -46,7 +46,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
 });
 
 /* Manual Close Session API */
-router.get("/end-meeting/:session", (req, res) => {
+router.get("/meeting/end-meeting/:session", (req, res) => {
     res.render("endMeeting.ejs", { data: { roomId: req.params.session } });
 });
 
@@ -60,7 +60,7 @@ router.delete("/meeting/api/close-session", function (req, res) {
 });
 
 // Close session
-router.delete("/end-meeting/api/close-session", function (req, res) {
+router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
     console.log("Closing session | {sessionName}=" + sessionName);
