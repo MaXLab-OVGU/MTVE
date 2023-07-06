@@ -325,16 +325,16 @@ function saveLocalRecording() {
 // ---------------------- SESSION API -----------------------------------
 function leaveSession() {
     //Leave the session by calling 'disconnect' method over the Session object ---
-	if (!sessionDisconnected) {
-		session.disconnect();
-	}
-	sessionDisconnected = true;
+    if (!sessionDisconnected) {
+        session.disconnect();
+    }
+    sessionDisconnected = true;
 }
 
 //End Meeting
 function endMeeting() {
     if (RECORDING_AUDIO_ENABLED === "1") stopLocalRecording();
-	closeSession(sessionName);
+    closeSession(sessionName);
 }
 
 //get Token (identification of each client in the session)
@@ -355,23 +355,23 @@ function getToken(callback) {
 
 //Remove User from Session
 function removeUser() {
-
-	if (!userLeft) {
-		httpRequest(
-			"POST",
-			"api/remove-user",
-			{
-				sessionName: sessionName,
-				token: token,
-			},
-			"User couldn't be removed from session",
-			(res) => {
-				console.warn("You have been removed from session " + sessionName);
-			}
-		);
-	}
-	userLeft = true;
-    
+    if (!userLeft) {
+        httpRequest(
+            "POST",
+            "api/remove-user",
+            {
+                sessionName: sessionName,
+                token: token,
+            },
+            "User couldn't be removed from session",
+            (res) => {
+                console.warn(
+                    "You have been removed from session " + sessionName
+                );
+            }
+        );
+    }
+    userLeft = true;
 }
 
 //close session
