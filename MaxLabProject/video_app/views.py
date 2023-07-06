@@ -19,6 +19,7 @@ from .utils import token_generator
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from random import randint
 from django.http import HttpResponse, Http404
+from django.conf import settings
 import ast
 import logging
 
@@ -29,7 +30,7 @@ def home_screen_view(request):
     context = {}
 
     user = request.user
-    
+
     if user.is_authenticated:
         logger.info("User already logged in. Redirecting to experiments page.")
         return redirect("experiments")
@@ -62,13 +63,12 @@ def registration_view(request):
             account = form.save(commit=False)
             email = form.cleaned_data.get("email")
             account.save()
-            email_to_send = generate_activation_email(
-                request, account, email, "activate"
-            )
+            email_to_send = generate_activation_email(request, account, email, "activate")
+            email_to_notify = generate_activation_email(request, account, settings.NOTIFY_EMAILS, "new_user_notification")
             email_to_send.send(fail_silently=False)
-            context[
-                "success_message"
-            ] = "Please click on the link sent to your Email address for Account Activation"
+            email_to_notify.send(fail_silently=False)
+            
+            context["success_message"] = "Please click on the link sent to your Email address for Account Activation"
             return render(request, "new_accounts/register.html", context)
         else:
             context["registration_form"] = form
@@ -124,9 +124,7 @@ def experiments_view(request, message=None, roomid=None):
         context["exps"] = Room.objects.order_by("-room_id").filter(is_deleted=False)
         context["admin"] = True
     else:
-        context["exps"] = Room.objects.order_by("-room_id").filter(
-            email=request.user.email, is_deleted=False
-        )
+        context["exps"] = Room.objects.order_by("-room_id").filter(email=request.user.email, is_deleted=False)
 
     if message is not None:
         if message == "delete":
@@ -148,14 +146,12 @@ def experiments_history_view(request, message=None, roomid=None):
     user = Account.objects.get(email=request.user.email)
     context["email"] = request.user.email
     if user.is_admin:
-        context["exps_hist"] = Room_History.objects.order_by(
-            "-meeting_start_time"
-        ).filter(room_id__is_deleted=False)
+        context["exps_hist"] = Room_History.objects.order_by("-meeting_start_time").filter(room_id__is_deleted=False)
         context["admin"] = True
     else:
-        context["exps_hist"] = Room_History.objects.order_by(
-            "-meeting_start_time"
-        ).filter(room_id__email=request.user.email, room_id__is_deleted=False)
+        context["exps_hist"] = Room_History.objects.order_by("-meeting_start_time").filter(
+            room_id__email=request.user.email, room_id__is_deleted=False
+        )
     return render(request, "experiments/experimentsHistory.html", context)
 
 
@@ -188,9 +184,7 @@ def request_password_reset_email(request):
         email = request.POST["email"]
         account = Account.objects.filter(email=email).first()
         if account:
-            email_to_send = generate_activation_email(
-                request, account, email, "request-reset-link"
-            )
+            email_to_send = generate_activation_email(request, account, email, "request-reset-link")
             email_to_send.send(fail_silently=False)
 
         context[
@@ -220,9 +214,7 @@ def reset_user_password(request, email, token):
                 return render(request, "new_accounts/reset-user-password.html", context)
             user.set_password(password1)
             user.save()
-            context[
-                "success_message"
-            ] = "Password reset successfull. Please login with you new password"
+            context["success_message"] = "Password reset successfull. Please login with you new password"
             return render(request, "new_accounts/reset-user-password.html", context)
         else:
             return render(request, "new_accounts/passwordFailure.html")
@@ -287,7 +279,15 @@ def generate_activation_email(request, account, email, type):
         )
         email_subject = "MaxLab Account Activation"
         message = f"Hello {account.username}\n Please click on the link to activate your account\n"
-    else:
+        activate_url = "http://" + domain + link
+
+        email_body = message + activate_url
+        email_message = EmailMessage(
+            subject=email_subject,
+            body=email_body,
+            to=[email],
+        )
+    elif type == "request-reset-link":
         link = reverse(
             "reset-user-password",
             kwargs={
@@ -297,17 +297,28 @@ def generate_activation_email(request, account, email, type):
         )
         email_subject = "MaxLab Password Reset Link"
         message = f"Hello {account.username}\n Please click on the link to reset your password\n"
+        activate_url = "http://" + domain + link
 
-    activate_url = "http://" + domain + link
+        email_body = message + activate_url
+        email_message = EmailMessage(
+            subject=email_subject,
+            body=email_body,
+            to=[email],
+        )
+    elif type == "new_user_notification":
+        
+        email_subject = "MaxLab New User Signed up"
+        message = f"Hello,\nA new user {account.username} has just signed up on the Maxlab app.\n"
+        activate_url = "http://" + domain
 
-    email_body = message + activate_url
-    email = EmailMessage(
-        subject=email_subject,
-        body=email_body,
-        to=[email],
-    )
+        email_body = message + activate_url
+        email_message = EmailMessage(
+            subject=email_subject,
+            body=email_body,
+            to=email,
+        )
 
-    return email
+    return email_message
 
 
 def download_view(request, type, roomid, force="False"):
