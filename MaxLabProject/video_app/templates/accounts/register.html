@@ -1,92 +1,88 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'home_base.html' %} {% block content %}
+<form class="login100-form validate-form" method="post">
+	{% csrf_token %}
+	<span class="login100-form-title"> Create your account </span>
 
-<div>
-  <style>
-    .form-signin {
-      width: 100%;
-      max-width: 330px;
-      padding: 15px;
-      margin: auto;
-    }
-    .form-signin .form-control {
-      position: relative;
-      box-sizing: border-box;
-      height: auto;
-      padding: 10px;
-      font-size: 16px;
-    }
-    .form-signin .form-control:focus {
-      z-index: 2;
-    }
-    .form-signin input[type="email"] {
-      margin-bottom: 10px;
-      border-bottom-right-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    .form-signin input[type="text"] {
-      margin-bottom: 10px;
-      border-bottom-right-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    .form-signin input[type="password"] {
-      margin-bottom: 10px;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
-    }
-    .h3 {
-      text-align: center;
-    }
-  </style>
+	<div class="wrap-input100 validate-input" data-validate="Valid email is required: ex@abc.xyz">
+		<input
+			class="input100"
+			type="email"
+			name="email"
+			placeholder="Email address"
+			id="inputEmail"
+			required
+			autofocus
+		/>
+		<span class="focus-input100"></span>
+		<span class="symbol-input100">
+			<i class="fa fa-envelope"></i>
+		</span>
+	</div>
 
-  <form class="form-signin" method="post">
-    {% csrf_token %}
-    <h1 class="h3 mb-3 font-weight-normal">Register</h1>
-    <input
-      name="email"
-      type="email"
-      id="inputEmail"
-      class="form-control"
-      placeholder="Email address"
-      required
-      autofocus
-    />
-    <input
-      name="username"
-      type="text"
-      id="inputUsername"
-      class="form-control"
-      placeholder="Username"
-      required
-    />
-    <input
-      name="password1"
-      type="password"
-      id="inputPassword1"
-      class="form-control"
-      placeholder="Password"
-      required
-    />
-    <input
-      name="password2"
-      type="password"
-      id="inputPassword2"
-      class="form-control"
-      placeholder="Confirm Password"
-      required
-    />
+	<div class="wrap-input100 validate-input">
+		<input
+			class="input100"
+			type="text"
+			name="username"
+			placeholder="Username"
+			id="inputUsername"
+			required
+		/>
+		<span class="focus-input100"></span>
+		<span class="symbol-input100">
+			<i class="fa-solid fa-user"></i>
+		</span>
+	</div>
 
-    {% for field in registration_form %} {% for error in field.errors %}
-    <p style="color: red">{{error}}</p>
-    {% endfor %} {% endfor %} {% if registration_form.non_field_errors %}
-    <div style="color: red">
-      <p>{{registration_form.non_field_errors}}</p>
-    </div>
-    {% endif %} {% if success_message %}
-    <p style="color: green; text-align: center">{{success_message}}</p>
-    {% endif %}
-    <button class="btn btn-lg btn-primary btn-block" type="submit">
-      Register
-    </button>
-  </form>
-</div>
+	<div class="wrap-input100 validate-input" data-validate="Password is required">
+		<input
+			class="input100"
+			type="password"
+			name="password1"
+			id="inputPassword1"
+			placeholder="Password"
+			required
+		/>
+		<span class="focus-input100"></span>
+		<span class="symbol-input100">
+			<i class="fa fa-lock" aria-hidden="true"></i>
+		</span>
+	</div>
+
+	<div class="wrap-input100 validate-input" data-validate="Password is required">
+		<input
+			class="input100"
+			type="password"
+			name="password2"
+			id="inputPassword2"
+			placeholder="Confirm Password"
+			required
+		/>
+		<span class="focus-input100"></span>
+		<span class="symbol-input100">
+			<i class="fa fa-lock" aria-hidden="true"></i>
+		</span>
+	</div>
+
+	{% for field in registration_form %} {% for error in field.errors %}
+	<p style="color: red">{{error}}</p>
+	{% endfor %} {% endfor %} {% if registration_form.non_field_errors %}
+	<div style="color: red">
+		<p>{{registration_form.non_field_errors}}</p>
+	</div>
+	{% endif %} {% if success_message %}
+	<p style="color: green; text-align: center">{{success_message}}</p>
+	{% endif %}
+
+	<div class="container-login100-form-btn">
+		<button class="login100-form-btn" type="submit">Register</button>
+	</div>
+
+    <div class="text-center p-t-20">
+		<a class="txt2" href={% url  'home' %}>
+			Already a member?
+			<i class="fa fa-long-arrow-right m-l-5" aria-hidden="true"></i>
+		</a>
+	</div>
+</form>
 {% endblock content %}

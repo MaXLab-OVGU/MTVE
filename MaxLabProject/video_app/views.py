@@ -52,7 +52,7 @@ def home_screen_view(request):
         logger.info("Accessing Login page")
         form = AccountAuthenticationForm()
     context["login_form"] = form
-    return render(request, "new_accounts/login.html", context)
+    return render(request, "accounts/login.html", context)
 
 
 def registration_view(request):
@@ -69,13 +69,13 @@ def registration_view(request):
             email_to_notify.send(fail_silently=False)
             
             context["success_message"] = "Please click on the link sent to your Email address for Account Activation"
-            return render(request, "new_accounts/register.html", context)
+            return render(request, "accounts/register.html", context)
         else:
             context["registration_form"] = form
     else:
         form = RegistrationForm()
         context["registration_form"] = form
-    return render(request, "new_accounts/register.html", context)
+    return render(request, "accounts/register.html", context)
 
 
 def logout_view(request):
@@ -165,20 +165,20 @@ def verification_view(request, email, token):
 
             if not token_generator.check_token(user, token):
                 user.delete()
-                return render(request, "new_accounts/activationFailure.html")
+                return render(request, "accounts/activationFailure.html")
 
             user.is_active = True
             user.save()
         except Exception as e:
-            return render(request, "new_accounts/error.html")
+            return render(request, "accounts/error.html")
 
-    return render(request, "new_accounts/activationSuccess.html")
+    return render(request, "accounts/activationSuccess.html")
 
 
 def request_password_reset_email(request):
     context = {}
     if request.method == "GET":
-        return render(request, "new_accounts/reset-password-email.html")
+        return render(request, "accounts/reset-password-email.html")
 
     if request.method == "POST":
         email = request.POST["email"]
@@ -190,7 +190,7 @@ def request_password_reset_email(request):
         context[
             "success_message"
         ] = "If Email is present in our databse then a Password reset link has been sent to your email."
-        return render(request, "new_accounts/reset-password-email.html", context)
+        return render(request, "accounts/reset-password-email.html", context)
 
 
 def reset_user_password(request, email, token):
@@ -199,9 +199,9 @@ def reset_user_password(request, email, token):
         user = Account.objects.get(email=force_text(urlsafe_base64_decode(email)))
 
         if not PasswordResetTokenGenerator().check_token(user, token):
-            return render(request, "new_accounts/passwordFailure.html")
+            return render(request, "accounts/passwordFailure.html")
         else:
-            return render(request, "new_accounts/reset-user-password.html", context)
+            return render(request, "accounts/reset-user-password.html", context)
     if request.method == "POST":
         user = Account.objects.get(email=force_text(urlsafe_base64_decode(email)))
         if PasswordResetTokenGenerator().check_token(user, token):
@@ -211,13 +211,13 @@ def reset_user_password(request, email, token):
 
             if password1 != password2:
                 context["error_message"] = "Password do not match"
-                return render(request, "new_accounts/reset-user-password.html", context)
+                return render(request, "accounts/reset-user-password.html", context)
             user.set_password(password1)
             user.save()
             context["success_message"] = "Password reset successfull. Please login with you new password"
-            return render(request, "new_accounts/reset-user-password.html", context)
+            return render(request, "accounts/reset-user-password.html", context)
         else:
-            return render(request, "new_accounts/passwordFailure.html")
+            return render(request, "accounts/passwordFailure.html")
 
 
 def create_room_view(request):
