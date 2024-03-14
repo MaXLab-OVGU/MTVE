@@ -8,9 +8,9 @@ env = environ.Env()
 if env("MEETINGS_APP_ENV") == "prod":
     DEBUG = False  # Keep False for prod, True for dev
 
-    SECRET_KEY = "ENTER A GENERATED SECRET KEY FOR PROD" # Generate a secret key and provide the same in the gunicorn.service file
+    SECRET_KEY = "ENTER A GENERATED SECRET KEY FOR PROD"  # Generate a secret key and provide the same in the gunicorn.service file
 
-    ALLOWED_HOSTS = ["example.domain.com"] # Domain name of the prod server
+    ALLOWED_HOSTS = ["example.domain.com"]  # Domain name of the prod server
 
     DATABASES = {
         "default": {
@@ -28,7 +28,7 @@ if env("MEETINGS_APP_ENV") == "prod":
 else:
     # Dev configurations to run on local system
 
-    DEBUG = True # Keep False for prod, True for dev
+    DEBUG = True  # Keep False for prod, True for dev
 
     # SECRET_KEY = "ENTER A GENERATED SECRET KEY FOR DEV" # Not needed for dev systems
 

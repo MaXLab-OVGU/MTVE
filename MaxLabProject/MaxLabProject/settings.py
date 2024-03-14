@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 import environ
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -72,7 +73,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "video_app.context_processors.video_server"
+                "video_app.context_processors.video_server",
             ],
         },
     },
@@ -103,8 +104,6 @@ DATABASES = "VALUE_FROM_ENV_SPECIFIC_SETTINGS_FILE"
 #         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
 #     }
 # }
-
-
 
 
 # Password validation
@@ -146,5 +145,5 @@ STATIC_URL = "/static/"
 STATIC_ROOT = Path(BASE_DIR, "static/")
 CSRF_FAILURE_VIEW = "video_app.views.csrf_failure"
 
-from .settings_config import *
 from .logging_config import *
+from .settings_config import *

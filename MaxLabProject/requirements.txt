@@ -14,7 +14,7 @@ imageio-ffmpeg==0.4.4
 mysql-client==0.0.1
 mysqlclient==2.0.3
 numpy==1.21.1
-Pillow
+Pillow==10.2.0
 proglog==0.1.9
 pytz==2021.1
 requests==2.26.0

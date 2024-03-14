@@ -1,27 +1,28 @@
-from video_app.download_utility import download_utility
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from .forms import (
-    AccountAuthenticationForm,
-    RegistrationForm,
-    CloneRoomForm,
-    AccountUpdateFrom,
-    CreateRoomForm,
-    UpdateRoomForm,
-)
-from .models import Account, Room, Room_History
-from django.urls import reverse
-from django.core.mail import EmailMessage, message
-from django.utils.encoding import force_bytes, force_text
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.contrib.sites.shortcuts import get_current_site
-from .utils import token_generator
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from random import randint
-from django.http import HttpResponse, Http404
-from django.conf import settings
 import ast
 import logging
+from random import randint
+
+from django.conf import settings
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import EmailMessage, message
+from django.http import Http404, HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+
+from video_app.download_utility import download_utility
+
+from .forms import (
+    AccountAuthenticationForm,
+    AccountUpdateFrom,
+    RegistrationForm,
+    RoomForm,
+)
+from .models import Account, Room, Room_History
+from .utils import token_generator
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +64,18 @@ def registration_view(request):
             account = form.save(commit=False)
             email = form.cleaned_data.get("email")
             account.save()
-            email_to_send = generate_activation_email(request, account, email, "activate")
-            email_to_notify = generate_activation_email(request, account, settings.NOTIFY_EMAILS, "new_user_notification")
+            email_to_send = generate_activation_email(
+                request, account, email, "activate"
+            )
+            email_to_notify = generate_activation_email(
+                request, account, settings.NOTIFY_EMAILS, "new_user_notification"
+            )
             email_to_send.send(fail_silently=False)
             email_to_notify.send(fail_silently=False)
-            
-            context["success_message"] = "Please click on the link sent to your Email address for Account Activation"
+
+            context["success_message"] = (
+                "Please click on the link sent to your Email address for Account Activation"
+            )
             return render(request, "accounts/register.html", context)
         else:
             context["registration_form"] = form
@@ -124,7 +131,9 @@ def experiments_view(request, message=None, roomid=None):
         context["exps"] = Room.objects.order_by("-room_id").filter(is_deleted=False)
         context["admin"] = True
     else:
-        context["exps"] = Room.objects.order_by("-room_id").filter(email=request.user.email, is_deleted=False)
+        context["exps"] = Room.objects.order_by("-room_id").filter(
+            email=request.user.email, is_deleted=False
+        )
 
     if message is not None:
         if message == "delete":
@@ -146,12 +155,14 @@ def experiments_history_view(request, message=None, roomid=None):
     user = Account.objects.get(email=request.user.email)
     context["email"] = request.user.email
     if user.is_admin:
-        context["exps_hist"] = Room_History.objects.order_by("-meeting_start_time").filter(room_id__is_deleted=False)
+        context["exps_hist"] = Room_History.objects.order_by(
+            "-meeting_start_time"
+        ).filter(room_id__is_deleted=False)
         context["admin"] = True
     else:
-        context["exps_hist"] = Room_History.objects.order_by("-meeting_start_time").filter(
-            room_id__email=request.user.email, room_id__is_deleted=False
-        )
+        context["exps_hist"] = Room_History.objects.order_by(
+            "-meeting_start_time"
+        ).filter(room_id__email=request.user.email, room_id__is_deleted=False)
     return render(request, "experiments/experimentsHistory.html", context)
 
 
@@ -184,12 +195,14 @@ def request_password_reset_email(request):
         email = request.POST["email"]
         account = Account.objects.filter(email=email).first()
         if account:
-            email_to_send = generate_activation_email(request, account, email, "request-reset-link")
+            email_to_send = generate_activation_email(
+                request, account, email, "request-reset-link"
+            )
             email_to_send.send(fail_silently=False)
 
-        context[
-            "success_message"
-        ] = "If Email is present in our databse then a Password reset link has been sent to your email."
+        context["success_message"] = (
+            "If Email is present in our databse then a Password reset link has been sent to your email."
+        )
         return render(request, "accounts/reset-password-email.html", context)
 
 
@@ -214,7 +227,9 @@ def reset_user_password(request, email, token):
                 return render(request, "accounts/reset-user-password.html", context)
             user.set_password(password1)
             user.save()
-            context["success_message"] = "Password reset successfull. Please login with you new password"
+            context["success_message"] = (
+                "Password reset successfull. Please login with you new password"
+            )
             return render(request, "accounts/reset-user-password.html", context)
         else:
             return render(request, "accounts/passwordFailure.html")
@@ -229,7 +244,7 @@ def create_room_view(request):
         return render(request, "experiments/createroom.html")
 
     if request.method == "POST":
-        form = CreateRoomForm(request.POST)
+        form = RoomForm(request.POST)
         try:
             if form.is_valid():
                 room = form.save(commit=False)
@@ -306,7 +321,7 @@ def generate_activation_email(request, account, email, type):
             to=[email],
         )
     elif type == "new_user_notification":
-        
+
         email_subject = "MaxLab New User Signed up"
         message = f"Hello,\nA new user {account.username} has just signed up on the Maxlab app.\n"
         activate_url = "http://" + domain
@@ -345,7 +360,7 @@ def editExp(request, room_id):
         return redirect("home")
     expObj = Room.objects.get(room_id=room_id)
     if request.method == "POST":
-        form = UpdateRoomForm(request.POST, instance=expObj)
+        form = RoomForm(request.POST, instance=expObj)
         if form.is_valid():
             if request.POST["communication"] == "a":
                 expObj.is_video_enabled = False
@@ -371,7 +386,7 @@ def clone_meeting_view(request, room_id):
         return redirect("home")
     expObj = Room.objects.get(room_id=room_id)
     if request.method == "POST":
-        form = CloneRoomForm(request.POST)
+        form = RoomForm(request.POST)
         print(form)
         if form.is_valid():
             room = form.save(commit=False)
