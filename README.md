@@ -6,9 +6,9 @@ video data from communication-based experiments in a way that these can be later
 automatic analysis through machine learning techniques. 
 It is developed by the [Magdeburg Experimental Laboratory of Economic Research of the Otto von Guericke University Magdeburg](https://maxlab.ovgu.de/). If you have questions, please feel free to contact us: maxlab@ovgu.de.
 
-When you report results of experiments conducted with MTVE, the licence requires that you mention its use in your publication and cite our Working Paper. The correct citation is: 
+When you report results of experiments conducted with MTVE, the licence requires that you mention its use in your publication and cite our Paper. The correct citation is: 
 
-> Bershadskyy, Dmitri, Sunil Ghadwal, and Jannik Greif.  "MTV-Magdeburg Tool for Videoconferences." Working Paper Series (2022).
+> Bershadskyy, D., Ghadwal, S. & Greif, J. MTVE: Magdeburg tool for video experiments. J Econ Sci Assoc (2024). https://doi.org/10.1007/s40881-024-00165-7
 
 
 ## Getting help and reporting bugs
