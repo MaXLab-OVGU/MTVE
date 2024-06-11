@@ -11,6 +11,13 @@ When you report results of experiments conducted with MTVE, the licence requires
 > Bershadskyy, D., Ghadwal, S. & Greif, J. MTVE: Magdeburg tool for video experiments. J Econ Sci Assoc (2024). https://doi.org/10.1007/s40881-024-00165-7
 
 
+## Feedback and Usage
+> [!IMPORTANT]
+> We would love to know if and how you use our project. If you use this project, please let us know by responding to [this issue](https://github.com/MaXLab-OVGU/MTVE/issues/6).
+
+
+
+
 ## Getting help and reporting bugs
 
 Please contribute your experience using MTVE by sending us emails, or contacting us in case of problems.
