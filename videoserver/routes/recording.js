@@ -6,8 +6,6 @@ const logger = require("../config/logger");
 /* Recording API */
 // Timelog Middleware
 router.use((req, res, next) => {
-    // console.log("Time: ", Date.now());
-    logger.info("Recording API route");
     next();
 });
 
@@ -22,7 +20,7 @@ router.post("/meeting/api/recording/start", function (req, res) {
         resolution: req.body.resolution,
         frameRate: parseInt(req.body.frameRate),
     };
-    console.log("Starting recording | {sessionId}=" + sessionId);
+    logger.info("Starting recording | {sessionId}=" + sessionId);
 
     utils.startRemoteRecording(sessionId, recordingProperties, res);
 });
@@ -31,7 +29,7 @@ router.post("/meeting/api/recording/start", function (req, res) {
 router.post("/meeting/api/recording/stop", function (req, res) {
     // Retrieve params from POST body
     var recordingId = req.body.recording;
-    console.log("Stopping recording | {recordingId}=" + recordingId);
+    logger.info("Stopping recording | {recordingId}=" + recordingId);
 
     utils.stopRemoteRecording(sessionId, recordingProperties, res);
 });

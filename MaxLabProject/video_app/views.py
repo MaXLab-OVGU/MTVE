@@ -387,7 +387,6 @@ def clone_meeting_view(request, room_id):
     expObj = Room.objects.get(room_id=room_id)
     if request.method == "POST":
         form = RoomForm(request.POST)
-        print(form)
         if form.is_valid():
             room = form.save(commit=False)
             room.email = request.user.email

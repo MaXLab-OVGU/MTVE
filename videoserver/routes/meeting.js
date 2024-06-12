@@ -5,8 +5,6 @@ const logger = require("../config/logger");
 
 // Timelog Middleware
 router.use((req, res, next) => {
-    // console.log("Time: ", Date.now());
-    logger.info("Meeting API route");
     next();
 });
 
@@ -24,7 +22,7 @@ router.post("/meeting/api/get-token", function (req, res) {
     // The video-call to connect
     var sessionName = req.body.sessionName;
 
-    console.log("Getting a token | {sessionName}={" + sessionName + "}");
+    logger.info("Getting a token | {sessionName}={" + sessionName + "}");
 
     utils.getToken(sessionName, res);
 });
@@ -34,7 +32,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
     var token = req.body.token;
-    console.log(
+    logger.info(
         "Removing user | {sessionName, token}={" +
             sessionName +
             ", " +
@@ -54,7 +52,7 @@ router.get("/meeting/end-meeting/:session", (req, res) => {
 router.delete("/meeting/api/close-session", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Closing session | {sessionName}=" + sessionName);
+    logger.info("Closing session | {sessionName}=" + sessionName);
 
     utils.closeSession(sessionName, res);
 });
@@ -63,7 +61,7 @@ router.delete("/meeting/api/close-session", function (req, res) {
 router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Closing session | {sessionName}=" + sessionName);
+    logger.info("Closing session | {sessionName}=" + sessionName);
 
     utils.closeSession(sessionName, res);
 });
@@ -72,14 +70,14 @@ router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
 router.post("/meeting/api/fetch-info", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Fetching session info | {sessionName}=" + sessionName);
+    logger.info("Fetching session info | {sessionName}=" + sessionName);
 
     utils.fetchSessionInfo(sessionName, res);
 });
 
 // Fetch all session info
 router.get("/meeting/api/fetch-all", function (req, res) {
-    console.log("Fetching all session info");
+    logger.info("Fetching all session info");
     utils.fetchAllActiveSessions(res);
 });
 

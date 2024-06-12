@@ -16,7 +16,7 @@ var connection = mysql.createPool(config.DB_CONNECTION);
 
 // Environment variable: URL where our OpenVidu server is listening
 var OPENVIDU_URL = config.OPENVIDU_URL;
-console.log(OPENVIDU_URL);
+logger.info(OPENVIDU_URL);
 // Environment variable: secret shared with our OpenVidu server
 var OPENVIDU_SECRET = config.OPENVIDU_SECRET;
 
@@ -41,7 +41,7 @@ function getToken(sessionName, res) {
 
 function newSession(sessionName, res) {
     // New session
-    console.log("New session " + sessionName);
+    logger.info("New session " + sessionName);
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -50,8 +50,6 @@ function newSession(sessionName, res) {
     var connectionProperties = {
         role: role,
     };
-
-    console.log(meetingDetails[sessionName].is_recording_audio_enabled);
 
     // Create a new OpenVidu Session asynchronously
     OV.createSession()
@@ -74,16 +72,16 @@ function newSession(sessionName, res) {
                     });
                 })
                 .catch((error) => {
-                    console.error(error);
+                    logger.crit("Error connecting to the new session: " + error.message);
                 });
         })
         .catch((error) => {
-            console.error(error);
+            logger.crit("Error creating session: " + error.message);
         });
 }
 
 function existingSession(sessionName, res) {
-    console.log("Existing session " + sessionName);
+    logger.info("Existing session " + sessionName);
 
     // Get the existing Session from the collection
     var mySession = mapSessions[sessionName];
@@ -108,7 +106,7 @@ function existingSession(sessionName, res) {
             });
         })
         .catch((error) => {
-            console.error(error);
+            logger.crit("Error connecting to an existing session" + error.message);
             if (error.message === "404") {
                 delete mapSessions[sessionName];
                 delete mapSessionNamesTokens[sessionName];
@@ -127,20 +125,20 @@ function removeUser(sessionName, token, res) {
         if (index !== -1) {
             // Token removed
             tokens.splice(index, 1);
-            console.log(sessionName + ": " + tokens.toString());
+            logger.info(sessionName + ": " + tokens.toString());
         } else {
             var msg = "Problems in the app server: the TOKEN wasn't valid";
             res.status(500).send(msg);
         }
         if (tokens.length == 0) {
             // Last user left: session must be removed
-            console.log(sessionName + " empty!");
+            logger.info(sessionName + " empty!");
             delete mapSessions[sessionName];
             if (mapSessionNamesTokens[sessionName]) {
                 delete mapSessionNamesTokens[sessionName];
                 updateMeeting(sessionName, "NOT STARTED")
                     .then(() => delete meetingDetails[sessionName])
-                    .catch((error) => console.error(error));
+                    .catch((error) => logger.crit("Error updating meeting status after removing all users - " + error));
             }
         }
         res.status(200).send();
@@ -161,7 +159,7 @@ function closeSession(sessionName, res) {
             delete mapSessionNamesTokens[sessionName];
             updateMeeting(sessionName, "NOT STARTED")
                 .then(() => delete meetingDetails[sessionName])
-                .catch((error) => console.error(error));
+                .catch((error) => logger.crit("Error updating meeting status after closing session - " + error));
         }
         res.status(200).send();
     } else {
@@ -179,20 +177,18 @@ function fetchSessionInfo(sessionName, res) {
             .fetch()
             .then((changed) => {
                 var meeting_start_time = null;
-                console.log("Any change: " + changed);
+                logger.info("Any change: " + changed);
                 if (
                     mapSessions[sessionName].activeConnections.length >=
                     numberRequiredParticipants
                 ) {
-                    console.log("updating Meeting");
-                    meeting_start_time = moment().format("YYYY-MM-DD HH:mm:ss");
-                    updateMeeting(
-                        sessionName,
-                        "IN PROGRESS",
-                        meeting_start_time
-                    )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                    logger.info("updating Meeting");
+                    meeting_start_time = moment()
+                        .utc()
+                        .format("YYYY-MM-DD HH:mm:ss");
+                    updateMeeting(sessionName, "IN PROGRESS")
+                        .then((message) => logger.info(message))
+                        .catch((error) => logger.crit("Error updating meeting status after starting meeting - " + error));
 
                     logMeetingSession(
                         sessionName,
@@ -200,15 +196,15 @@ function fetchSessionInfo(sessionName, res) {
                         meeting_start_time,
                         0
                     )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                        .then((message) => logger.info(message))
+                        .catch((error) => logger.crit("Error logging meeting session - " + error));
 
                     updateMeetingSession(
                         sessionName,
                         mapSessions[sessionName].sessionId
                     )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                        .then((message) => logger.info(message))
+                        .catch((error) => logger.crit("Error updating meeting session - " + error));
                 }
                 res.status(200).send({
                     session_details: sessionToJson(mapSessions[sessionName]),
@@ -218,7 +214,7 @@ function fetchSessionInfo(sessionName, res) {
             .catch((error) => res.status(400).send(error.message));
     } else {
         var msg = "Problems in the app server: the SESSION does not exist";
-        console.log(msg);
+        logger.info(msg);
         res.status(500).send(msg);
     }
 }
@@ -230,7 +226,7 @@ function fetchAllActiveSessions(res) {
             OV.activeSessions.forEach((s) => {
                 sessions.push(sessionToJson(s));
             });
-            console.log("Any change: " + changed);
+            logger.info("Any change: " + changed);
             res.status(200).send(sessions);
         })
         .catch((error) => res.status(400).send(error.message));
@@ -260,7 +256,7 @@ function getMeetingDetails(session_name, render_page, res) {
                 res.render("InvalidMeeting.ejs", { data: message });
             } else {
                 meetingDetails[session_name] = rows;
-                console.log(rows);
+                logger.info(rows);
                 res.render(render_page, {
                     data: { roomId: session_name, roomDetails: rows },
                     localRecording: {
@@ -289,7 +285,7 @@ function getResults(session_name, callback) {
         "WHERE  room_id = ?";
     connection.getConnection((error, connection) => {
         if (error) {
-            console.error("Error connecting to Database ", error);
+            logger.crit("Error connecting to Database ", error);
             return callback(err, null);
         }
         connection.query(
@@ -297,7 +293,7 @@ function getResults(session_name, callback) {
             [session_name],
             function (err, rows, fields) {
                 if (err) {
-                    console.error(
+                    logger.crit(
                         "Error while fetching data from database",
                         err
                     );
@@ -320,50 +316,27 @@ function checkIfMeetingisValid(rows) {
     return [true, null];
 }
 
-let updateMeeting = (meeting_id, status, meeting_start_time = null) => {
+let updateMeeting = (meeting_id, status) => {
     let updateMeetingQuery = "";
-    if (meeting_start_time != null) {
-        updateMeetingQuery =
-            "update video_app_room set status =?,meeting_start_time=?  where room_id=?";
-    } else {
-        updateMeetingQuery =
-            "update video_app_room set status =? where room_id=?";
-    }
+    updateMeetingQuery = "update video_app_room set status =? where room_id=?";
 
     return new Promise((resolve, reject) => {
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                if (meeting_start_time != null) {
-                    console.log(updateMeetingQuery);
-                    connection.query(
-                        updateMeetingQuery,
-                        [status, meeting_start_time, meeting_id],
-                        (err, result) => {
-                            if (err) reject(err);
-                            else
-                                resolve(
-                                    "Update Meeting: " +
-                                        result.affectedRows +
-                                        " record(s) updated"
-                                );
-                        }
-                    );
-                } else {
-                    connection.query(
-                        updateMeetingQuery,
-                        [status, meeting_id],
-                        (err, result) => {
-                            if (err) reject(err);
-                            else
-                                resolve(
-                                    "Update Meeting: " +
-                                        result.affectedRows +
-                                        " record(s) updated"
-                                );
-                        }
-                    );
-                }
+                connection.query(
+                    updateMeetingQuery,
+                    [status, meeting_id],
+                    (err, result) => {
+                        if (err) reject(err);
+                        else
+                            resolve(
+                                "Update Meeting: " +
+                                    result.affectedRows +
+                                    " record(s) updated"
+                            );
+                    }
+                );
             }
             connection.release();
         });
@@ -383,7 +356,6 @@ let logMeetingSession = (
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                console.log(logMeetingSessionQuery);
                 connection.query(
                     logMeetingSessionQuery,
                     [
@@ -402,8 +374,13 @@ let logMeetingSession = (
                         "Exp",
                     ],
                     (err, result) => {
-                        if (err) reject(err);
-                        else
+                        if (err) {
+                            if (err.code === "ER_DUP_ENTRY") {
+                                resolve("Entry already added in the table");
+                            } else {
+                                reject(err);
+                            }
+                        } else
                             resolve(
                                 "Log Session: " +
                                     result.affectedRows +
@@ -425,7 +402,7 @@ let updateMeetingSession = (room_id, session_id) => {
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                console.log(updateMeetingSessionQuery);
+                logger.info(updateMeetingSessionQuery);
                 connection.query(
                     updateMeetingSessionQuery,
                     [room_id, session_id],
@@ -509,7 +486,7 @@ function uploadLocalRecording(req, res) {
             } catch (e) {
                 req.unpipe(busboy);
                 workQueue.pause();
-                logger.crit(e);
+                logger.crit("Busboy error - " + e);
             }
         });
     }
@@ -524,7 +501,7 @@ function uploadLocalRecording(req, res) {
     busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
         handleError(() => {
             file.on("data", function (data) {
-                // console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+                // logger.info('File [' + fieldname + '] got ' + data.length + ' bytes');
             });
             file.on("end", function () {
                 logger.info("File upload finished - " + filename.filename);

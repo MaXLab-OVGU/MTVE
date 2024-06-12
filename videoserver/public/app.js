@@ -269,7 +269,10 @@ function startLocalRecording() {
     ].join("___");
 
     // Start recording
-    localRecorder.record("video/webm;codecs=vp9");
+    var options = {
+        mimeType: "video/webm;codecs=vp9"
+    }
+    localRecorder.record(options);
     startTime = Date.now();
     console.log("Local recording started");
     setTimeout(endMeeting, parseInt(DURATION));
