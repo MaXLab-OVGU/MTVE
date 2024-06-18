@@ -21,10 +21,11 @@ router.get("/meeting/:session", (req, res) => {
 router.post("/meeting/api/get-token", function (req, res) {
     // The video-call to connect
     var sessionName = req.body.sessionName;
+    var sessionDuration = req.body.sessionDuration;
 
     logger.info("Getting a token | {sessionName}={" + sessionName + "}");
 
-    utils.getToken(sessionName, res);
+    utils.getToken(sessionName, sessionDuration, res);
 });
 
 // Remove user from session
@@ -41,6 +42,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     );
 
     utils.removeUser(sessionName, token, res);
+    utils.removeSessionRequests(sessionName, res);
 });
 
 /* Manual Close Session API */
@@ -70,9 +72,18 @@ router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
 router.post("/meeting/api/fetch-info", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    logger.info("Fetching session info | {sessionName}=" + sessionName);
+    // logger.debug("Fetching session info | {sessionName}=" + sessionName);
 
     utils.fetchSessionInfo(sessionName, res);
+});
+
+// Remove connection requests
+router.post("/meeting/api/remove-connection-requests", function (req, res) {
+    // Retrieve params from POST body
+    var sessionName = req.body.sessionName;
+    logger.info("Remove session requests | {sessionName}=" + sessionName);
+
+    utils.removeSessionRequests(sessionName, res);
 });
 
 // Fetch all session info

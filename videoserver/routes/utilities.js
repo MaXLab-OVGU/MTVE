@@ -30,12 +30,85 @@ var mapSessionNamesTokens = {};
 
 var meetingDetails = {};
 
-function getToken(sessionName, res) {
-    if (mapSessions[sessionName]) {
-        // Session already exists
-        existingSession(sessionName, res);
-    } else {
+var sessionList = [];
+
+class SessionManager {
+    constructor(sessionName, joinId) {
+        this.sessionName = sessionName;
+        this.joinId = joinId;
+        this.createdAt = Date.now();
+    }
+}
+
+function countSessionRequests(sessionName) {
+    return sessionList.filter((session) => session.sessionName === sessionName)
+        .length;
+}
+
+function checkSessionRequests(sessionName, joinId) {
+    return sessionList.find(
+        (session) =>
+            session.sessionName === sessionName && session.joinId === joinId
+    );
+}
+
+function removeSessionRequests(sessionName, joinId = -1, res = null) {
+    if (joinId > 0)
+        sessionList = sessionList.filter(
+            (session) =>
+                session.sessionName !== sessionName && session.joinId !== joinId
+        );
+    else
+        sessionList = sessionList.filter(
+            (session) => session.sessionName !== sessionName
+        );
+    if (res) sendResponse(res, 200, "Removed session requests");
+}
+
+function getToken(sessionName, sessionDuration, res) {
+    logger.info("Getting a token | {sessionName}={" + sessionName + "}");
+
+    sessionObject = new SessionManager(
+        sessionName,
+        countSessionRequests(sessionName) + 1
+    );
+
+    sessionList.push(sessionObject);
+
+    logger.debug(
+        "Session List: " +
+            JSON.stringify(sessionList, null, 2)
+    );
+
+    if (sessionObject.joinId == 1) {
         newSession(sessionName, res);
+    } else {
+        if (sessionObject.joinId > 1) {
+            if (mapSessions[sessionName]) {
+                sessionObjectFirst = checkSessionRequests(sessionName, 1);
+                timeDiff = Date.now() - sessionObjectFirst.createdAt;
+                // If the previous session was started more than 30 seconds
+                // plus the session duration, remove the session requests
+                timeBuffer = parseInt(sessionDuration) + 30000;
+                if (timeDiff > timeBuffer) {
+                    removeSessionRequests(sessionName, sessionObject.joinId);
+                    sendResponse(
+                        res,
+                        303,
+                        "Session not yet created. Please try again in a moment."
+                    );
+                } else {
+                    existingSession(sessionName, res);
+                }
+            } else {
+                removeSessionRequests(sessionName, sessionObject.joinId);
+                sendResponse(
+                    res,
+                    303,
+                    "Session not yet created. Please try again in a moment."
+                );
+            }
+        }
     }
 }
 
@@ -56,6 +129,9 @@ function newSession(sessionName, res) {
         .then((session) => {
             // Store the new Session in the collection of Sessions
             mapSessions[sessionName] = session;
+            logger.info(
+                "New session created: " + mapSessions[sessionName].sessionId
+            );
             // Store a new empty array in the collection of tokens
             mapSessionNamesTokens[sessionName] = [];
 
@@ -72,19 +148,29 @@ function newSession(sessionName, res) {
                     });
                 })
                 .catch((error) => {
-                    logger.crit("Error connecting to the new session: " + error.message);
+                    sendResponse(
+                        res,
+                        500,
+                        "Error connecting to the new session: " + error.message
+                    );
+                    removeSessionRequests(sessionName);
                 });
         })
         .catch((error) => {
-            logger.crit("Error creating session: " + error.message);
+            sendResponse(res, 500, "Error creating session: " + error.message);
         });
 }
 
 function existingSession(sessionName, res) {
-    logger.info("Existing session " + sessionName);
+    logger.info("Existing session " + mapSessions[sessionName].sessionId);
 
     // Get the existing Session from the collection
     var mySession = mapSessions[sessionName];
+
+    logger.debug(
+        "Active connections: " +
+            mySession.activeConnections.length
+    );
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -106,12 +192,14 @@ function existingSession(sessionName, res) {
             });
         })
         .catch((error) => {
-            logger.crit("Error connecting to an existing session" + error.message);
-            if (error.message === "404") {
-                delete mapSessions[sessionName];
-                delete mapSessionNamesTokens[sessionName];
-                newSession(sessionName, connectionProperties, res);
-            }
+            sendResponse(
+                res,
+                500,
+                "Error connecting to an existing session: " + error.message
+            );
+            removeSessionRequests(sessionName);
+            delete mapSessions[sessionName];
+            delete mapSessionNamesTokens[sessionName];
         });
 }
 
@@ -138,7 +226,12 @@ function removeUser(sessionName, token, res) {
                 delete mapSessionNamesTokens[sessionName];
                 updateMeeting(sessionName, "NOT STARTED")
                     .then(() => delete meetingDetails[sessionName])
-                    .catch((error) => logger.crit("Error updating meeting status after removing all users - " + error));
+                    .catch((error) =>
+                        logger.crit(
+                            "Error updating meeting status after removing all users - " +
+                                error
+                        )
+                    );
             }
         }
         res.status(200).send();
@@ -159,8 +252,14 @@ function closeSession(sessionName, res) {
             delete mapSessionNamesTokens[sessionName];
             updateMeeting(sessionName, "NOT STARTED")
                 .then(() => delete meetingDetails[sessionName])
-                .catch((error) => logger.crit("Error updating meeting status after closing session - " + error));
+                .catch((error) =>
+                    logger.crit(
+                        "Error updating meeting status after closing session - " +
+                            error
+                    )
+                );
         }
+        removeSessionRequests(sessionName);
         res.status(200).send();
     } else {
         res.status(400).send("Meeting does not exist");
@@ -177,7 +276,7 @@ function fetchSessionInfo(sessionName, res) {
             .fetch()
             .then((changed) => {
                 var meeting_start_time = null;
-                logger.info("Any change: " + changed);
+                // logger.info("Any change: " + changed);
                 if (
                     mapSessions[sessionName].activeConnections.length >=
                     numberRequiredParticipants
@@ -188,7 +287,12 @@ function fetchSessionInfo(sessionName, res) {
                         .format("YYYY-MM-DD HH:mm:ss");
                     updateMeeting(sessionName, "IN PROGRESS")
                         .then((message) => logger.info(message))
-                        .catch((error) => logger.crit("Error updating meeting status after starting meeting - " + error));
+                        .catch((error) =>
+                            logger.crit(
+                                "Error updating meeting status after starting meeting - " +
+                                    error
+                            )
+                        );
 
                     logMeetingSession(
                         sessionName,
@@ -197,14 +301,22 @@ function fetchSessionInfo(sessionName, res) {
                         0
                     )
                         .then((message) => logger.info(message))
-                        .catch((error) => logger.crit("Error logging meeting session - " + error));
+                        .catch((error) =>
+                            logger.crit(
+                                "Error logging meeting session - " + error
+                            )
+                        );
 
                     updateMeetingSession(
                         sessionName,
                         mapSessions[sessionName].sessionId
                     )
                         .then((message) => logger.info(message))
-                        .catch((error) => logger.crit("Error updating meeting session - " + error));
+                        .catch((error) =>
+                            logger.crit(
+                                "Error updating meeting session - " + error
+                            )
+                        );
                 }
                 res.status(200).send({
                     session_details: sessionToJson(mapSessions[sessionName]),
@@ -293,10 +405,7 @@ function getResults(session_name, callback) {
             [session_name],
             function (err, rows, fields) {
                 if (err) {
-                    logger.crit(
-                        "Error while fetching data from database",
-                        err
-                    );
+                    logger.crit("Error while fetching data from database", err);
                     return callback(err, null);
                 }
                 return callback(null, rows[0]);
@@ -530,6 +639,22 @@ function uploadLocalRecording(req, res) {
     return req.pipe(busboy);
 }
 
+function sendResponse(res, status, message) {
+    if (status == 200) {
+        logger.info("Response: " + message);
+    } else if (status > 300 && status < 400) {
+        logger.warn("Response: " + message);
+    } else {
+        logger.crit("Response: " + message);
+    }
+
+    try {
+        res.status(status).send(message);
+    } catch (error) {
+        logger.crit("Error sending response to client: " + error);
+    }
+}
+
 exports.getToken = getToken;
 exports.removeUser = removeUser;
 exports.closeSession = closeSession;
@@ -539,3 +664,4 @@ exports.getMeetingDetails = getMeetingDetails;
 exports.startRemoteRecording = startRemoteRecording;
 exports.stopRemoteRecording = stopRemoteRecording;
 exports.uploadLocalRecording = uploadLocalRecording;
+exports.removeSessionRequests = removeSessionRequests;

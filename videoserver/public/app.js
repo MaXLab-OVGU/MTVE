@@ -17,22 +17,11 @@ var numberOfStreamsPlaying = 0;
 var startTime;
 var fileName;
 
-// function randomDelay() {
-// 	// Adds a random delay of upto 1 sec
-// 	max = 10;
-// 	min = 0;
-// 	delayInMilliseconds = Math.floor(Math.random() * (max - min + 1) + min) * 100;
-
-// 	setTimeout(function () {
-// 		console.log("Delay of - " + delayInMilliseconds + " ms");
-// 		joinSession();
-// 	}, delayInMilliseconds);
-// }
-
 const joinSession = () => {
     $("#join").show();
     $("#session").hide();
     $("#endmeeting").hide();
+    $("#errorMeeting").hide();
     $("#permission").hide();
     $("#permission-denied").hide();
     $("#recordingMessageSuccess").hide();
@@ -117,108 +106,141 @@ const joinSession = () => {
             .then(() => {
                 handler = setInterval(function () {
                     // Check every 1 second if required number of participants joined the meeting
-                    fetchNumberofconnections(function (session_info) {
-                        if (
-                            session_info.session_details.connections
-                                .numberOfElements >=
-                            parseInt(REQUIRED_PARTICIPANTS)
-                        ) {
-                            clearInterval(handler);
-                            handler = 0;
-                            meeting_start_time =
-                                session_info.meeting_start_time;
-                            $("#session-title").text(sessionName);
+                    fetchNumberofconnections(
+                        function (session_info) {
+                            if (
+                                session_info.session_details.connections
+                                    .numberOfElements >=
+                                parseInt(REQUIRED_PARTICIPANTS)
+                            ) {
+                                clearInterval(handler);
+                                removeConnectionRequests();
+                                handler = 0;
+                                meeting_start_time =
+                                    session_info.meeting_start_time;
+                                $("#session-title").text(sessionName);
+                                $("#join").hide();
+                                $("#session").show();
+                                $("#endmeeting").hide();
+                                $("#errorMeeting").hide();
+                                $("#permission").hide();
+                                $("#permission-denied").hide();
+
+                                //Get our camera stream
+                                publisher = OV.initPublisher(
+                                    "video-container",
+                                    {
+                                        audioSource: undefined, // The source of audio. If undefined default microphone
+                                        videoSource: undefined, // The source of video. If undefined default webcam
+                                        publishAudio: true, // Whether you want to start publishing with your audio unmuted or not
+                                        publishVideo: VIDEO_ENABLED === "1", // Whether you want to start publishing with your video enabled or not
+                                        resolution: RESOLUTION, // The resolution of your video
+                                        frameRate: FRAME_RATE, // The frame rate of your video
+                                        insertMode: "APPEND", // How the video is inserted in the target element 'video-container'
+                                        mirror: true, // Whether to mirror your local video or not
+                                    }
+                                );
+
+                                //Specify the actions when events take place in our publisher
+                                // When the publisher stream has started playing media...
+                                publisher.on("accessAllowed", (event) => {});
+
+                                publisher.on("accessDenied", (event) => {});
+
+                                publisher.on(
+                                    "accessDialogOpened",
+                                    (event) => {}
+                                );
+
+                                publisher.on(
+                                    "accessDialogClosed",
+                                    (event) => {}
+                                );
+
+                                // When the publisher stream has started playing media...
+                                publisher.on("streamCreated", (event) => {});
+
+                                // When our HTML video has been added to DOM...
+                                publisher.on("videoElementCreated", (event) => {
+                                    $(event.element).prop("muted", true); // Mute local video
+                                    if (RECORDING_AUDIO_ENABLED === "1") {
+                                        startRemoteRecording();
+                                    }
+                                    numberOfStreamsPlaying =
+                                        numberOfStreamsPlaying + 1;
+                                    internalHandler = setInterval(function () {
+                                        if (
+                                            numberOfStreamsPlaying >=
+                                            parseInt(REQUIRED_PARTICIPANTS)
+                                        ) {
+                                            clearInterval(internalHandler);
+                                            if (
+                                                RECORDING_AUDIO_ENABLED === "1"
+                                            ) {
+                                                startLocalRecording();
+                                            } else {
+                                                setTimeout(
+                                                    endMeeting,
+                                                    parseInt(DURATION)
+                                                );
+                                            }
+                                        }
+                                    }, 1000);
+                                });
+
+                                // When the HTML video has been appended to DOM...
+                                publisher.on(
+                                    "videoElementDestroyed",
+                                    (event) => {
+                                        console.log("Video Element Destroyed");
+                                    }
+                                );
+
+                                // When the publisher stream has started playing media...
+                                publisher.on("streamPlaying", (event) => {
+                                    console.log("Publisher Stream playing");
+                                });
+
+                                //Set Streamid
+                                fileName =
+                                    ROOM_ID +
+                                    "_" +
+                                    ROOM_NAME +
+                                    "_" +
+                                    meeting_start_time;
+
+                                fileName = fileName.replace(/:/g, "_");
+
+                                publisher.stream.streamId = fileName;
+
+                                console.log(publisher.stream.streamId);
+
+                                //Publish your stream
+                                session.publish(publisher);
+                                console.log("Stream Published");
+                            } else {
+                                console.log("Waiting for users");
+                            }
+                        },
+                        function () {
                             $("#join").hide();
-                            $("#session").show();
+                            $("#session").hide();
                             $("#endmeeting").hide();
+                            $("#errorMeeting").show();
                             $("#permission").hide();
                             $("#permission-denied").hide();
-
-                            //Get our camera stream
-                            publisher = OV.initPublisher("video-container", {
-                                audioSource: undefined, // The source of audio. If undefined default microphone
-                                videoSource: undefined, // The source of video. If undefined default webcam
-                                publishAudio: true, // Whether you want to start publishing with your audio unmuted or not
-                                publishVideo: VIDEO_ENABLED === "1", // Whether you want to start publishing with your video enabled or not
-                                resolution: RESOLUTION, // The resolution of your video
-                                frameRate: FRAME_RATE, // The frame rate of your video
-                                insertMode: "APPEND", // How the video is inserted in the target element 'video-container'
-                                mirror: true, // Whether to mirror your local video or not
-                            });
-
-                            //Specify the actions when events take place in our publisher
-                            // When the publisher stream has started playing media...
-                            publisher.on("accessAllowed", (event) => {});
-
-                            publisher.on("accessDenied", (event) => {});
-
-                            publisher.on("accessDialogOpened", (event) => {});
-
-                            publisher.on("accessDialogClosed", (event) => {});
-
-                            // When the publisher stream has started playing media...
-                            publisher.on("streamCreated", (event) => {});
-
-                            // When our HTML video has been added to DOM...
-                            publisher.on("videoElementCreated", (event) => {
-                                $(event.element).prop("muted", true); // Mute local video
-                                if (RECORDING_AUDIO_ENABLED === "1") {
-                                    startRemoteRecording();
-                                }
-                                numberOfStreamsPlaying =
-                                    numberOfStreamsPlaying + 1;
-                                internalHandler = setInterval(function () {
-                                    if (
-                                        numberOfStreamsPlaying >=
-                                        parseInt(REQUIRED_PARTICIPANTS)
-                                    ) {
-                                        clearInterval(internalHandler);
-                                        if (RECORDING_AUDIO_ENABLED === "1") {
-                                            startLocalRecording();
-                                        } else {
-                                            setTimeout(
-                                                endMeeting,
-                                                parseInt(DURATION)
-                                            );
-                                        }
-                                    }
-                                }, 1000);
-                            });
-
-                            // When the HTML video has been appended to DOM...
-                            publisher.on("videoElementDestroyed", (event) => {
-                                console.log("Video Element Destroyed");
-                            });
-
-                            // When the publisher stream has started playing media...
-                            publisher.on("streamPlaying", (event) => {
-                                console.log("Publisher Stream playing");
-                            });
-
-                            //Set Streamid
-                            fileName =
-                                ROOM_ID +
-                                "_" +
-                                ROOM_NAME +
-                                "_" +
-                                meeting_start_time;
-
-                            fileName = fileName.replace(/:/g, "_");
-
-                            publisher.stream.streamId = fileName;
-
-                            console.log(publisher.stream.streamId);
-
-                            //Publish your stream
-                            session.publish(publisher);
-                            console.log("Stream Published");
-                        } else {
-                            console.log("Waiting for users");
+                            clearInterval(handler);
                         }
-                    });
+                    );
                 }, 1000);
             })
             .catch((error) => {
+                $("#join").hide();
+                $("#session").hide();
+                $("#endmeeting").hide();
+                $("#errorMeeting").show();
+                $("#permission").hide();
+                $("#permission-denied").hide();
                 console.warn(
                     "There was an error connecting to the session:",
                     error.code,
@@ -270,8 +292,8 @@ function startLocalRecording() {
 
     // Start recording
     var options = {
-        mimeType: "video/webm;codecs=vp9"
-    }
+        mimeType: "video/webm;codecs=vp9",
+    };
     localRecorder.record(options);
     startTime = Date.now();
     console.log("Local recording started");
@@ -342,18 +364,39 @@ function endMeeting() {
 
 //get Token (identification of each client in the session)
 function getToken(callback) {
-    httpRequest(
-        "POST",
-        "api/get-token",
-        {
-            sessionName: sessionName,
-        },
-        "Request of TOKEN gone WRONG:",
-        (res) => {
-            token = res[0]; // Get token from response
-            callback(token); // Continue the join operation
-        }
-    );
+    var counter = 0;
+    tokenHandler = setInterval(function () {
+        counter++;
+        httpRequest(
+            "POST",
+            "api/get-token",
+            {
+                sessionName: sessionName,
+                sessionDuration: DURATION,
+            },
+            "Request of TOKEN gone WRONG:",
+            (res) => {
+                token = res[0]; // Get token from response
+                clearInterval(tokenHandler);
+                callback(token); // Continue the join operation
+            },
+            (errCode, errorMsg) => {
+                if (errCode == 303 && counter < 15) {
+                    console.log(
+                        "Session not yet started. Retrying to get token."
+                    );
+                } else {
+                    clearInterval(tokenHandler);
+                    $("#join").hide();
+                    $("#session").hide();
+                    $("#endmeeting").hide();
+                    $("#errorMeeting").show();
+                    $("#permission").hide();
+                    $("#permission-denied").hide();
+                }
+            }
+        );
+    }, 2000);
 }
 
 //Remove User from Session
@@ -397,9 +440,9 @@ function closeSession(sessionName) {
 }
 
 //fetch Info about the current session - Used for getting the number of user currently connected
-function fetchNumberofconnections(callback) {
+function fetchNumberofconnections(callback, errorcallback) {
     session_info = 0;
-    httpRequestSync(
+    httpRequest(
         "POST",
         "api/fetch-info",
         {
@@ -407,16 +450,45 @@ function fetchNumberofconnections(callback) {
         },
         "Session couldn't be fetched",
         (res) => {
-            session_info = res;
-        }
+            callback(res);
+        },
+        (errCode, errorMsg) => {
+            errorcallback();
+        },
+        false
     );
-    callback(session_info);
+}
+
+function removeConnectionRequests() {
+    httpRequest(
+        "POST",
+        "api/remove-connection-requests",
+        {
+            sessionName: sessionName,
+        },
+        "Session requests couldn't be removed",
+        (res) => {
+            console.log("Connection requests removed");
+        },
+        (errCode, errorMsg) => {
+            console.log("Connection requests couldn't be removed");
+        },
+        false
+    );
 }
 // ---------------------- END SESSION API -----------------------------------
 
-function httpRequest(method, url, body, errorMsg, callback) {
+function httpRequest(
+    method,
+    url,
+    body,
+    errorMsg,
+    callbackfunc,
+    errorCallbackfunc = null,
+    http_open = true
+) {
     var http = new XMLHttpRequest();
-    http.open(method, url, true);
+    http.open(method, url, http_open);
     http.setRequestHeader("Content-type", "application/json");
     http.addEventListener("readystatechange", processRequest, false);
     http.send(JSON.stringify(body));
@@ -425,36 +497,16 @@ function httpRequest(method, url, body, errorMsg, callback) {
         if (http.readyState == 4) {
             if (http.status == 200) {
                 try {
-                    callback(JSON.parse(http.responseText));
+                    callbackfunc(JSON.parse(http.responseText));
                 } catch (e) {
-                    callback(e);
+                    callbackfunc(e);
                 }
             } else {
                 console.warn(errorMsg + " (" + http.status + ")");
                 console.warn(http.responseText);
-            }
-        }
-    }
-}
-
-function httpRequestSync(method, url, body, errorMsg, callback) {
-    var http = new XMLHttpRequest();
-    http.open(method, url, false);
-    http.setRequestHeader("Content-type", "application/json");
-    http.addEventListener("readystatechange", processRequest, false);
-    http.send(JSON.stringify(body));
-
-    function processRequest() {
-        if (http.readyState == 4) {
-            if (http.status == 200) {
-                try {
-                    callback(JSON.parse(http.responseText));
-                } catch (e) {
-                    callback(e);
+                if (errorCallbackfunc) {
+                    errorCallbackfunc(http.status, http.responseText);
                 }
-            } else {
-                console.warn(errorMsg + " (" + http.status + ")");
-                console.warn(http.responseText);
             }
         }
     }
