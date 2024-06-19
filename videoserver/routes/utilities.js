@@ -75,10 +75,7 @@ function getToken(sessionName, sessionDuration, res) {
 
     sessionList.push(sessionObject);
 
-    logger.debug(
-        "Session List: " +
-            JSON.stringify(sessionList, null, 2)
-    );
+    logger.debug("Session List: " + JSON.stringify(sessionList, null, 2));
 
     if (sessionObject.joinId == 1) {
         newSession(sessionName, res);
@@ -167,10 +164,7 @@ function existingSession(sessionName, res) {
     // Get the existing Session from the collection
     var mySession = mapSessions[sessionName];
 
-    logger.debug(
-        "Active connections: " +
-            mySession.activeConnections.length
-    );
+    logger.debug("Active connections: " + mySession.activeConnections.length);
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -246,7 +240,11 @@ function closeSession(sessionName, res) {
     // If the session exists
     if (mapSessions[sessionName]) {
         var session = mapSessions[sessionName];
-        session.close();
+        try {
+            session.close();
+        } catch (error) {
+            logger.crit("Error closing session - " + error);
+        }
         delete mapSessions[sessionName];
         if (mapSessionNamesTokens[sessionName]) {
             delete mapSessionNamesTokens[sessionName];

@@ -435,6 +435,10 @@ function closeSession(sessionName) {
         (res) => {
             $("#endMeetingSuccess").show();
             console.warn("Session " + sessionName + " has been closed");
+        },
+        (errCode, errorMsg) => {
+            $("#endMeetingError").show();
+            console.warn("Session couldn't be closed");
         }
     );
 }

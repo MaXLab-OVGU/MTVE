@@ -42,7 +42,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     );
 
     utils.removeUser(sessionName, token, res);
-    utils.removeSessionRequests(sessionName, res);
+    utils.removeSessionRequests(sessionName, -1, res);
 });
 
 /* Manual Close Session API */
@@ -83,7 +83,7 @@ router.post("/meeting/api/remove-connection-requests", function (req, res) {
     var sessionName = req.body.sessionName;
     logger.info("Remove session requests | {sessionName}=" + sessionName);
 
-    utils.removeSessionRequests(sessionName, res);
+    utils.removeSessionRequests(sessionName, -1, res);
 });
 
 // Fetch all session info
