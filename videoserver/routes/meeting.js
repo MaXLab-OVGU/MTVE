@@ -42,7 +42,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     );
 
     utils.removeUser(sessionName, token, res);
-    utils.removeSessionRequests(sessionName, -1, res);
+    utils.removeSessionRequests(sessionName, -1);
 });
 
 /* Manual Close Session API */

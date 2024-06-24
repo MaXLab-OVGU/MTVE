@@ -53,15 +53,27 @@ function checkSessionRequests(sessionName, joinId) {
 }
 
 function removeSessionRequests(sessionName, joinId = -1, res = null) {
-    if (joinId > 0)
+    logger.debug(
+        "Removing session requests | {sessionName}={" +
+            sessionName +
+            "} | {joinId}={" +
+            joinId +
+            "}"
+    );
+    if (joinId > 0) {
         sessionList = sessionList.filter(
             (session) =>
-                session.sessionName !== sessionName && session.joinId !== joinId
+                !(
+                    session.sessionName == sessionName &&
+                    session.joinId == joinId
+                )
         );
-    else
+    } else {
         sessionList = sessionList.filter(
             (session) => session.sessionName !== sessionName
         );
+    }
+    logger.debug("Session List: " + JSON.stringify(sessionList, null, 2));
     if (res) sendResponse(res, 200, "Removed session requests");
 }
 
@@ -95,7 +107,7 @@ function getToken(sessionName, sessionDuration, res) {
                         "Session not yet created. Please try again in a moment."
                     );
                 } else {
-                    existingSession(sessionName, res);
+                    existingSession(sessionName, res, sessionObject.joinId);
                 }
             } else {
                 removeSessionRequests(sessionName, sessionObject.joinId);
@@ -150,7 +162,7 @@ function newSession(sessionName, res) {
                         500,
                         "Error connecting to the new session: " + error.message
                     );
-                    removeSessionRequests(sessionName);
+                    removeSessionRequests(sessionName, 1);
                 });
         })
         .catch((error) => {
@@ -158,7 +170,7 @@ function newSession(sessionName, res) {
         });
 }
 
-function existingSession(sessionName, res) {
+function existingSession(sessionName, res, joinId) {
     logger.info("Existing session " + mapSessions[sessionName].sessionId);
 
     // Get the existing Session from the collection
@@ -191,7 +203,7 @@ function existingSession(sessionName, res) {
                 500,
                 "Error connecting to an existing session: " + error.message
             );
-            removeSessionRequests(sessionName);
+            removeSessionRequests(sessionName, joinId);
             delete mapSessions[sessionName];
             delete mapSessionNamesTokens[sessionName];
         });
@@ -265,11 +277,17 @@ function closeSession(sessionName, res) {
 }
 
 function fetchSessionInfo(sessionName, res) {
-    var numberRequiredParticipants =
-        meetingDetails[sessionName]["number_of_participants"];
+    if (meetingDetails[sessionName]) {
+        if (meetingDetails[sessionName]["number_of_participants"]) {
+            var numberRequiredParticipants =
+                meetingDetails[sessionName]["number_of_participants"];
+        } else {
+            var numberRequiredParticipants = -1;
+        }
+    }
 
     // If the session exists
-    if (mapSessions[sessionName]) {
+    if (mapSessions[sessionName] && numberRequiredParticipants > 0) {
         mapSessions[sessionName]
             .fetch()
             .then((changed) => {
@@ -323,9 +341,11 @@ function fetchSessionInfo(sessionName, res) {
             })
             .catch((error) => res.status(400).send(error.message));
     } else {
-        var msg = "Problems in the app server: the SESSION does not exist";
-        logger.info(msg);
-        res.status(500).send(msg);
+        sendResponse(
+            res,
+            500,
+            "Problems in the app server: the SESSION does not exist"
+        );
     }
 }
 
