@@ -90,6 +90,9 @@ function getToken(sessionName, sessionDuration, res) {
     logger.debug("Session List: " + JSON.stringify(sessionList, null, 2));
 
     if (sessionObject.joinId == 1) {
+        if (mapSessions[sessionName]) {
+            delete mapSessions[sessionName];
+        }
         newSession(sessionName, res);
     } else {
         if (sessionObject.joinId > 1) {
@@ -99,12 +102,27 @@ function getToken(sessionName, sessionDuration, res) {
                 // If the previous session was started more than 30 seconds
                 // plus the session duration, remove the session requests
                 timeBuffer = parseInt(sessionDuration) + 30000;
+                logger.debug(
+                    "Session:" +
+                        sessionName +
+                        " | Time Diff: " +
+                        timeDiff +
+                        " | Time Buffer: " +
+                        timeBuffer
+                );
                 if (timeDiff > timeBuffer) {
                     removeSessionRequests(sessionName, sessionObject.joinId);
+                    if (mapSessions[sessionName]) {
+                        delete mapSessions[sessionName];
+                    }
+
+                    if (mapSessionNamesTokens[sessionName]) {
+                        delete mapSessionNamesTokens[sessionName];
+                    }
                     sendResponse(
                         res,
                         303,
-                        "Session not yet created. Please try again in a moment."
+                        "Old session found, cleared. Please try again in a moment."
                     );
                 } else {
                     existingSession(sessionName, res, sessionObject.joinId);
@@ -139,7 +157,10 @@ function newSession(sessionName, res) {
             // Store the new Session in the collection of Sessions
             mapSessions[sessionName] = session;
             logger.info(
-                "New session created: " + mapSessions[sessionName].sessionId
+                "New session created for sessionName- " +
+                    sessionName +
+                    "| sessionId- " +
+                    mapSessions[sessionName].sessionId
             );
             // Store a new empty array in the collection of tokens
             mapSessionNamesTokens[sessionName] = [];
@@ -160,7 +181,10 @@ function newSession(sessionName, res) {
                     sendResponse(
                         res,
                         500,
-                        "Error connecting to the new session: " + error.message
+                        "Error connecting to the new session : session_name- " +
+                            sessionName +
+                            " | Error- " +
+                            error.message
                     );
                     removeSessionRequests(sessionName, 1);
                 });
@@ -171,12 +195,24 @@ function newSession(sessionName, res) {
 }
 
 function existingSession(sessionName, res, joinId) {
-    logger.info("Existing session " + mapSessions[sessionName].sessionId);
+    logger.info(
+        "Existing session " +
+            sessionName +
+            ": " +
+            mapSessions[sessionName].sessionId
+    );
 
     // Get the existing Session from the collection
     var mySession = mapSessions[sessionName];
 
-    logger.debug("Active connections: " + mySession.activeConnections.length);
+    logger.debug(
+        "Active connections for session " +
+            sessionName +
+            ": " +
+            mapSessions[sessionName].sessionId +
+            " - " +
+            mySession.activeConnections.length
+    );
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -201,7 +237,12 @@ function existingSession(sessionName, res, joinId) {
             sendResponse(
                 res,
                 500,
-                "Error connecting to an existing session: " + error.message
+                "Error connecting to an existing session : session_name- " +
+                    sessionName +
+                    " | session_id- " +
+                    mySession.sessionId +
+                    " | Error- " +
+                    error.message
             );
             removeSessionRequests(sessionName, joinId);
             delete mapSessions[sessionName];
