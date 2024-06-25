@@ -258,22 +258,25 @@ function closeSession(sessionName, res) {
             logger.crit("Error closing session - " + error);
         }
         delete mapSessions[sessionName];
-        if (mapSessionNamesTokens[sessionName]) {
-            delete mapSessionNamesTokens[sessionName];
-            updateMeeting(sessionName, "NOT STARTED")
-                .then(() => delete meetingDetails[sessionName])
-                .catch((error) =>
-                    logger.crit(
-                        "Error updating meeting status after closing session - " +
-                            error
-                    )
-                );
-        }
-        removeSessionRequests(sessionName);
-        res.status(200).send();
-    } else {
-        res.status(400).send("Meeting does not exist");
     }
+
+    if (mapSessionNamesTokens[sessionName]) {
+        delete mapSessionNamesTokens[sessionName];
+    }
+
+    if (meetingDetails[sessionName]) {
+        delete meetingDetails[sessionName];
+    }
+
+    updateMeeting(sessionName, "NOT STARTED").catch((error) =>
+        logger.crit(
+            "Error updating meeting status after closing session - " + error
+        )
+    );
+
+    removeSessionRequests(sessionName);
+
+    res.status(200).send();
 }
 
 function fetchSessionInfo(sessionName, res) {
