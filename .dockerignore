@@ -1,0 +1,19 @@
+# ignore .env file
+.env
+.git
+
+# ignore python cache files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# ignore static files from static folder
+MaxlabProject/static
+
+# ignore node_modules
+videoserver/node_modules
+
+# ignore virtual environment and Transcription folder
+maxlabenv
+Transcription

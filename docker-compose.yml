@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  meetings_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.meetings_app
+    ports:
+      - "8000:8000"
+
+  videoserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.videoserver
+    ports:
+      - "5000:5000"

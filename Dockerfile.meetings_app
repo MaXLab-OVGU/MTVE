@@ -1,0 +1,37 @@
+FROM python:3.8-slim-buster
+
+ENV PYTHONUNBUFFERED=1
+ENV MEETINGS_APP_ENV="dev"
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    default-libmysqlclient-dev \
+    python3-dev \
+    build-essential \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip, setuptools, and wheel
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the content of the local src directory to the working directory
+COPY . .
+
+# Move into MaxLabProject directory
+WORKDIR /app/MaxLabProject
+
+# Install any dependencies
+RUN pip install -r requirements.txt
+
+# Apply migrations
+RUN python manage.py migrate --noinput
+
+# Collect static files
+RUN python manage.py collectstatic --noinput
+
+# Run the application
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
