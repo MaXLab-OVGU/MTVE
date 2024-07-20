@@ -4,9 +4,9 @@ const { createLogger, transports, format } = require("winston");
 const env = process.env.MEETINGS_APP_ENV;
 // const logDir = "../logs";
 
-if (!fs.existsSync(logDir)) {
-	fs.mkdirSync(logDir);
-}
+// if (!fs.existsSync(logDir)) {
+// 	fs.mkdirSync(logDir);
+// }
 
 const now = new Date();
 var logLevel = "debug";

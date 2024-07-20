@@ -95,46 +95,44 @@ function getToken(sessionName, sessionDuration, res) {
         }
         newSession(sessionName, res);
     } else {
-        if (sessionObject.joinId > 1) {
-            if (mapSessions[sessionName]) {
-                sessionObjectFirst = checkSessionRequests(sessionName, 1);
-                timeDiff = Date.now() - sessionObjectFirst.createdAt;
-                // If the previous session was started more than 30 seconds
-                // plus the session duration, remove the session requests
-                timeBuffer = parseInt(sessionDuration) + 30000;
-                logger.debug(
-                    "Session:" +
-                        sessionName +
-                        " | Time Diff: " +
-                        timeDiff +
-                        " | Time Buffer: " +
-                        timeBuffer
-                );
-                if (timeDiff > timeBuffer) {
-                    removeSessionRequests(sessionName, sessionObject.joinId);
-                    if (mapSessions[sessionName]) {
-                        delete mapSessions[sessionName];
-                    }
-
-                    if (mapSessionNamesTokens[sessionName]) {
-                        delete mapSessionNamesTokens[sessionName];
-                    }
-                    sendResponse(
-                        res,
-                        303,
-                        "Old session found, cleared. Please try again in a moment."
-                    );
-                } else {
-                    existingSession(sessionName, res, sessionObject.joinId);
+        if (mapSessions[sessionName]) {
+            sessionObjectFirst = checkSessionRequests(sessionName, 1);
+            timeDiff = Date.now() - sessionObjectFirst.createdAt;
+            // If the previous session was started more than 30 seconds
+            // plus the session duration, remove the session requests
+            timeBuffer = parseInt(sessionDuration) + 30000;
+            logger.debug(
+                "Session:" +
+                    sessionName +
+                    " | Time Diff: " +
+                    timeDiff +
+                    " | Time Buffer: " +
+                    timeBuffer
+            );
+            if (timeDiff > timeBuffer) {
+                removeSessionRequests(sessionName);
+                if (mapSessions[sessionName]) {
+                    delete mapSessions[sessionName];
                 }
-            } else {
-                removeSessionRequests(sessionName, sessionObject.joinId);
+
+                if (mapSessionNamesTokens[sessionName]) {
+                    delete mapSessionNamesTokens[sessionName];
+                }
                 sendResponse(
                     res,
                     303,
-                    "Session not yet created. Please try again in a moment."
+                    "Old session found, cleared. Please try again in a moment."
                 );
+            } else {
+                existingSession(sessionName, res, sessionObject.joinId);
             }
+        } else {
+            removeSessionRequests(sessionName, sessionObject.joinId);
+            sendResponse(
+                res,
+                303,
+                "Session not yet created. Please try again in a moment."
+            );
         }
     }
 }
@@ -244,7 +242,7 @@ function existingSession(sessionName, res, joinId) {
                     " | Error- " +
                     error.message
             );
-            removeSessionRequests(sessionName, joinId);
+            removeSessionRequests(sessionName);
             delete mapSessions[sessionName];
             delete mapSessionNamesTokens[sessionName];
         });
