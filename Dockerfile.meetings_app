@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 
 ENV PYTHONUNBUFFERED=1
-ENV MEETINGS_APP_ENV="dev"
+ENV MEETINGS_APP_ENV="uat"
 
 # Install system dependencies
 RUN apt-get update && \

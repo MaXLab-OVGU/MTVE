@@ -1,7 +1,7 @@
 # Use an official Node.js runtime as a parent image
 FROM node:22
 
-ENV MEETINGS_APP_ENV="dev"
+ENV MEETINGS_APP_ENV="uat"
 
 # Set the working directory in the container
 WORKDIR /video_app
