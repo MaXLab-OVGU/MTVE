@@ -1,15 +1,24 @@
-version: '3.8'
 services:
-  meetings_app:
-    build:
-      context: .
-      dockerfile: Dockerfile.meetings_app
-    ports:
-      - "8000:8000"
+    meetings_app:
+        build:
+            context: .
+            dockerfile: Dockerfile.meetings_app
+        container_name: meetings_container
+        volumes:
+            - static_volume:/app/MaxLabProject/staticfiles
+        restart: always
+        ports:
+            - "8000:8000"
 
-  videoserver:
-    build:
-      context: .
-      dockerfile: Dockerfile.videoserver
-    ports:
-      - "5000:5000"
+    frontend-proxy:
+        image: nginx:latest
+        ports:
+            - "8001:80"
+        volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - static_volume:/app/MaxLabProject/staticfiles:ro
+        depends_on:
+            - meetings_app
+
+volumes:
+    static_volume:

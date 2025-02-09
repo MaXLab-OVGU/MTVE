@@ -141,9 +141,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = "/static/"
-STATIC_ROOT = Path(BASE_DIR, "static/")
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
 CSRF_FAILURE_VIEW = "video_app.views.csrf_failure"
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8001"]
 
 from .logging_config import *
 from .settings_config import *
