@@ -10,6 +10,8 @@ __pycache__
 
 # ignore static files from static folder
 MaxlabProject/static
+certbot/
+static/
 
 # ignore node_modules
 videoserver/node_modules

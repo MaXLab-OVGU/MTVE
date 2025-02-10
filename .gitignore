@@ -15,3 +15,4 @@ MaxLabProject/MaxLabProject/settings_config.py
 Backup/
 LocalRecordings/
 MaxLabProject/static/
+certbot/
