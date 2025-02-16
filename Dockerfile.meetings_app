@@ -9,7 +9,6 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV MEETINGS_APP_ENV="uat"
 
 # Install system dependencies
 RUN apt-get update && \
@@ -50,10 +49,13 @@ WORKDIR /app
 # Copy the content of the local src directory to the working directory
 COPY . .
 
+# Set arguments
+ARG MEETINGS_APP_ENV
+ENV MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV MEETINGS_APP_ENV="uat"
 
 # Move into MaxLabProject directory
 WORKDIR /app/MaxLabProject

@@ -3,9 +3,23 @@ services:
         build:
             context: .
             dockerfile: Dockerfile.meetings_app
+            args:
+                - MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
         container_name: meetings_container
         volumes:
-            - static_volume:/app/MaxLabProject/staticfiles
+            - static_volume_meetings_app:/app/MaxLabProject/staticfiles
+        restart: always
+
+    videoserver:
+        build:
+            context: .
+            dockerfile: Dockerfile.videoserver
+            args:
+                - MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
+        container_name: videoserver
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - static_volume_videoserver:/app/videoserver/public/
         restart: always
 
     frontend-proxy:
@@ -13,13 +27,16 @@ services:
         ports:
             - 80:80
             - 443:443
+        container_name: frontend_proxy
         volumes:
             - ./nginx.conf:/etc/nginx/nginx.conf:ro
-            - static_volume:/app/MaxLabProject/staticfiles:ro
+            - static_volume_meetings_app:/app/MaxLabProject/staticfiles:ro
+            - static_volume_videoserver:/app/videoserver/public/:ro
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
         depends_on:
             - meetings_app
+            - videoserver
 
     certbot:
         image: certbot/certbot
@@ -27,9 +44,12 @@ services:
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
-        command: certonly --webroot -w /var/www/certbot --force-renewal --email {email} -d {domain} --agree-tos --non-interactive
+        command: certonly --webroot -w /var/www/certbot --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
+        # In case of renewal, use the following command instead of the above one
+        # command: command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
         depends_on:
             - frontend-proxy
 
 volumes:
-    static_volume:
+    static_volume_meetings_app:
+    static_volume_videoserver:

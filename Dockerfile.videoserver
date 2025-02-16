@@ -1,22 +1,35 @@
 # Use an official Node.js runtime as a parent image
-FROM node:22
+FROM node:20 AS builder
 
-ENV MEETINGS_APP_ENV="uat"
+# Create the app directory
+RUN mkdir /app
 
 # Set the working directory in the container
-WORKDIR /video_app
+WORKDIR /app
 
 # Copy the rest of the application code
 COPY . .
 
 # Move into MaxLabProject directory
-WORKDIR /video_app/videoserver
+WORKDIR /app/videoserver
 
 # Install dependencies
 RUN npm install
+
+FROM node:20
+
+# Copy the content of the local src directory to the working directory
+COPY --from=builder /app/videoserver /app/videoserver
+
+# Set arguments as environment variables
+ARG MEETINGS_APP_ENV
+ENV MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
+
+# Set the working directory in the container
+WORKDIR /app/videoserver
 
 # Expose the port the app runs on
 EXPOSE 5000
 
 # Command to run the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

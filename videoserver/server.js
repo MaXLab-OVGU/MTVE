@@ -66,7 +66,6 @@ var options = {
     key: fs.readFileSync(config.OPENVIDU_KEY_FILE),
     cert: fs.readFileSync(config.OPENVIDU_CERT_FILE),
 };
-https.createServer(options, app).listen(config.PORT);
-
-// console.log("App listening on port " + config.PORT);
-logger.info("App listening on port " + config.PORT);
+https.createServer(options, app).listen(config.PORT, '0.0.0.0', () => {
+    logger.info("App listening on port " + config.PORT);
+});
