@@ -61,11 +61,7 @@ app.use(
 app.use("/", meetingRoutes);
 app.use("/", recordingRoutes);
 
-// Listen (start app with node server.js)
-var options = {
-    key: fs.readFileSync(config.OPENVIDU_KEY_FILE),
-    cert: fs.readFileSync(config.OPENVIDU_CERT_FILE),
-};
-https.createServer(options, app).listen(config.PORT, '0.0.0.0', () => {
+// Start the server
+app.listen(config.PORT, () => {
     logger.info("App listening on port " + config.PORT);
 });
