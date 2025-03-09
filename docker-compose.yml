@@ -20,6 +20,7 @@ services:
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - static_volume_videoserver:/app/videoserver/public/
+            - ${LOCAL_RECORDING_LOCATION}:/app/LocalRecordings
         restart: always
 
     frontend-proxy:
