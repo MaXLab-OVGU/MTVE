@@ -44,32 +44,35 @@ COPY --from=builder /usr/local/include /usr/local/include
 COPY --from=builder /usr/local/share /usr/local/share
 COPY --from=builder /usr/local/etc /usr/local/etc
 
-WORKDIR /app
+WORKDIR /app/MaxLabProject
 
 # Copy the content of the local src directory to the working directory
-COPY . .
-
-# Set arguments
-ARG MEETINGS_APP_ENV
-ENV MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
+COPY MaxLabProject/MaxLabProject /app/MaxLabProject/MaxLabProject
+COPY MaxLabProject/templates /app/MaxLabProject/templates
+COPY MaxLabProject/video_app /app/MaxLabProject/video_app
+COPY MaxLabProject/manage.py /app/MaxLabProject/manage.py
+COPY MaxLabProject/entrypoint.sh /app/MaxLabProject/entrypoint.sh
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Move into MaxLabProject directory
-WORKDIR /app/MaxLabProject
-
 # Expose the application port
 EXPOSE 8000
 
+# Give execute permission to the script
+RUN chmod +x entrypoint.sh
+
+# Run the application with entrypoint.sh
+CMD ["./entrypoint.sh"]
+
 # Apply migrations
-RUN python manage.py migrate --noinput
+# RUN python manage.py migrate --noinput
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+# RUN python manage.py collectstatic --noinput
 
 # Run the application
 # CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # python -m gunicorn --bind 0.0.0.0:8000 --workers 3 MaxLabProject.wsgi:application
-CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "MaxLabProject.wsgi:application"]
+# CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "MaxLabProject.wsgi:application"]
