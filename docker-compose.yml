@@ -14,8 +14,8 @@ services:
         build:
             context: .
             dockerfile: Dockerfile.videoserver
-            args:
-                - MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
+        env_file:
+            - .env
         container_name: videoserver
         volumes:
             - ./certbot/conf:/etc/letsencrypt

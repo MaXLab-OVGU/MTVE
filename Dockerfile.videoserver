@@ -21,10 +21,6 @@ FROM node:20
 # Copy the content of the local src directory to the working directory
 COPY --from=builder /app/videoserver /app/videoserver
 
-# Set arguments as environment variables
-ARG MEETINGS_APP_ENV
-ENV MEETINGS_APP_ENV=${MEETINGS_APP_ENV}
-
 # Copy the rest of the application code
 COPY videoserver/config /app/videoserver/config
 COPY videoserver/public /app/videoserver/public

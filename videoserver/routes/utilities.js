@@ -3,7 +3,6 @@ var moment = require("moment");
 
 var OpenVidu = require("openvidu-node-client").OpenVidu;
 var OpenViduRole = require("openvidu-node-client").OpenViduRole;
-var config = require("../config/config");
 const logger = require("../config/logger");
 var mysql = require("mysql2");
 var fs = require("fs");
@@ -12,13 +11,21 @@ const Busboy = require("busboy");
 const { default: PQueue } = require("p-queue");
 const path = require("path");
 
-var connection = mysql.createPool(config.DB_CONNECTION);
+var connection = mysql.createPool({
+    connectionLimit: 100,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    multipleStatements: true,
+});
 
 // Environment variable: URL where our OpenVidu server is listening
-var OPENVIDU_URL = config.OPENVIDU_URL;
+var OPENVIDU_URL = process.env.OPENVIDU_URL;
 logger.info(OPENVIDU_URL);
 // Environment variable: secret shared with our OpenVidu server
-var OPENVIDU_SECRET = config.OPENVIDU_SECRET;
+var OPENVIDU_SECRET = process.env.OPENVIDU_SECRET;
 
 // Entrypoint to OpenVidu Node Client SDK
 var OV = new OpenVidu(OPENVIDU_URL, OPENVIDU_SECRET);
@@ -432,8 +439,8 @@ function getMeetingDetails(session_name, render_page, res) {
                 res.render(render_page, {
                     data: { roomId: session_name, roomDetails: rows },
                     localRecording: {
-                        upload: config.UPLOAD_LOCAL_RECORDING,
-                        download: config.DOWNLOAD_LOCAL_RECORDING,
+                        upload: process.env.UPLOAD_LOCAL_RECORDING,
+                        download: process.env.DOWNLOAD_LOCAL_RECORDING,
                     },
                 });
             }
@@ -675,11 +682,14 @@ function uploadLocalRecording(req, res) {
             file.on("end", function () {
                 logger.info("File upload finished - " + filename.filename);
             });
+            // Location on the docker container where the file will be saved
+            // This location is mounted to the host machine
+            saveToLocation = '/app/LocalRecordings'
             var saveTo = path.join(
-                config.LOCAL_RECORDING_FOLDER,
+                saveToLocation,
                 filename.filename
             );
-            if (fs.existsSync(config.LOCAL_RECORDING_FOLDER)) {
+            if (fs.existsSync(saveToLocation)) {
                 var outStream = fs.createWriteStream(saveTo);
                 file.pipe(outStream);
             } else {
