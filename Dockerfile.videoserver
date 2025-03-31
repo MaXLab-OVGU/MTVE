@@ -1,0 +1,39 @@
+# Use an official Node.js runtime as a parent image
+FROM node:20 AS builder
+
+# Create the app directory
+RUN mkdir /app
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the package.json and package-lock.json
+COPY videoserver/package*.json /app/videoserver/
+
+# Move into MaxLabProject directory
+WORKDIR /app/videoserver
+
+# Install dependencies
+RUN npm install
+
+FROM node:20
+
+# Copy the content of the local src directory to the working directory
+COPY --from=builder /app/videoserver /app/videoserver
+
+# Copy the rest of the application code
+COPY videoserver/config /app/videoserver/config
+COPY videoserver/public /app/videoserver/public
+COPY videoserver/routes /app/videoserver/routes
+COPY videoserver/views /app/videoserver/views
+COPY videoserver/server.js /app/videoserver/server.js
+COPY videoserver/utils.js /app/videoserver/utils.js
+
+# Set the working directory in the container
+WORKDIR /app/videoserver
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Command to run the application
+CMD ["node", "server.js"]

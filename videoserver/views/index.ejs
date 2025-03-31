@@ -41,7 +41,7 @@
             const UPLOAD_LOCAL_RECORDING = "<%= localRecording.upload %>";
             const DOWNLOAD_LOCAL_RECORDING = "<%= localRecording.download %>";
         </script>
-        <script src="/meeting/static/openvidu-browser-2.18.0.js"></script>
+        <script src="/meeting/static/openvidu-browser-2.29.0.js"></script>
         <script src="/meeting/static/app.js"></script>
         <script src="/meeting/static/fix-webm-duration.js"></script>
         <script>
@@ -146,6 +146,21 @@
                         >
                             Recording Upload Failed
                         </p>
+                    </div>
+                </div>
+            </div>
+            <div id="errorMeeting" style="display: none">
+                <div
+                    class="border d-flex flex-column min-vh-100 justify-content-center align-items-center"
+                >
+                    <div
+                        class="jumbotron w-50 flex-grow-0 flex-shrink-1"
+                        id="gateway"
+                    >
+                        <img src="/meeting/static/MTV.svg" />
+                        <h1 class="text-center display-4 text-danger">
+                            Error joining meeting!
+                        </h1>
                     </div>
                 </div>
             </div>

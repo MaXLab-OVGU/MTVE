@@ -31,14 +31,6 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.NullHandler",
         },
-        "logfile": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": "../logs/meetings_app.logs",
-            "maxBytes": 50000,
-            "backupCount": 2,
-            "formatter": "simple",
-        },
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
@@ -47,22 +39,22 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["logfile"],
+            "handlers": ["console"],
             "propagate": True,
             "level": "WARN",
         },
         "django.request": {
-            "handlers": ["logfile"],
+            "handlers": ["console"],
             "level": "DEBUG",
             "propagate": True,
         },
         "django.db.backends": {
-            "handlers": ["logfile"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
         "video_app": {
-            "handlers": ["console", "logfile"],
+            "handlers": ["console"],
             "level": "DEBUG",
         },
     },

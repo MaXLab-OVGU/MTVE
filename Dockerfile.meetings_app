@@ -1,0 +1,78 @@
+FROM python:3.8-slim-buster AS builder
+
+# Create the app directory
+RUN mkdir /app
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    default-libmysqlclient-dev \
+    python3-dev \
+    build-essential \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip, setuptools, and wheel
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Copy the requirements file
+COPY MaxLabProject/requirements.txt /app/MaxLabProject/requirements.txt
+
+# Move into MaxLabProject directory
+WORKDIR /app/MaxLabProject
+
+# Install any dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+FROM python:3.8-slim-buster
+
+# Copy the Python and system dependencies from the builder stage
+COPY --from=builder /usr/local/lib/python3.8/site-packages /usr/local/lib/python3.8/site-packages
+COPY --from=builder /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=builder /usr/bin /usr/bin
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /usr/local/include /usr/local/include
+COPY --from=builder /usr/local/share /usr/local/share
+COPY --from=builder /usr/local/etc /usr/local/etc
+
+WORKDIR /app/MaxLabProject
+
+# Copy the content of the local src directory to the working directory
+COPY MaxLabProject/MaxLabProject /app/MaxLabProject/MaxLabProject
+COPY MaxLabProject/templates /app/MaxLabProject/templates
+COPY MaxLabProject/video_app /app/MaxLabProject/video_app
+COPY MaxLabProject/manage.py /app/MaxLabProject/manage.py
+COPY MaxLabProject/entrypoint.sh /app/MaxLabProject/entrypoint.sh
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Expose the application port
+EXPOSE 8000
+
+# Give execute permission to the script
+RUN chmod +x entrypoint.sh
+
+# Run the application with entrypoint.sh
+CMD ["./entrypoint.sh"]
+
+# Apply migrations
+# RUN python manage.py migrate --noinput
+
+# Collect static files
+# RUN python manage.py collectstatic --noinput
+
+# Run the application
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# python -m gunicorn --bind 0.0.0.0:8000 --workers 3 MaxLabProject.wsgi:application
+# CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "MaxLabProject.wsgi:application"]

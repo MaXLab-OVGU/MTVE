@@ -14,35 +14,17 @@ var app = express(); // Create our app with express
 dotenv.config();
 
 // Custom imports
-const config = require("./config/config");
+// const config = require("./config/config");
 const logger = require("./config/logger");
+const { getVideoHeight, getVideoWidth } = require('./utils');
 
 // Import routes
 const meetingRoutes = require("./routes/meeting");
 const recordingRoutes = require("./routes/recording");
 
 // Height Width calculations for video frames
-app.locals.videoHeight = (NO_OF_PARTICIPANTS) => {
-    if (NO_OF_PARTICIPANTS <= 2) {
-        return 100;
-    } else if (NO_OF_PARTICIPANTS <= 8) {
-        return 50;
-    } else {
-        return 33.33;
-    }
-};
-
-app.locals.videoWidth = (NO_OF_PARTICIPANTS) => {
-    if (NO_OF_PARTICIPANTS == 1) {
-        return 100;
-    } else if (NO_OF_PARTICIPANTS <= 4) {
-        return 50;
-    } else if (NO_OF_PARTICIPANTS <= 6) {
-        return 33.33;
-    } else {
-        return 25;
-    }
-};
+app.locals.videoHeight = getVideoHeight;
+app.locals.videoWidth = getVideoWidth;
 
 app.set("view engine", "ejs");
 app.use("/meeting/static", express.static(path.join(__dirname, "public")));
@@ -58,15 +40,11 @@ app.use(
     })
 ); // Parse application/vnd.api+json as json
 
+// Routes
 app.use("/", meetingRoutes);
 app.use("/", recordingRoutes);
 
-// Listen (start app with node server.js)
-var options = {
-    key: fs.readFileSync(config.OPENVIDU_KEY_FILE),
-    cert: fs.readFileSync(config.OPENVIDU_CERT_FILE),
-};
-https.createServer(options, app).listen(config.PORT);
-
-// console.log("App listening on port " + config.PORT);
-logger.info("App listening on port " + config.PORT);
+// Start the server
+app.listen(5000, () => {
+    logger.info("App listening on port 5000");
+});

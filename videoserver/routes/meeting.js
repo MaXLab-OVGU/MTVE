@@ -5,8 +5,6 @@ const logger = require("../config/logger");
 
 // Timelog Middleware
 router.use((req, res, next) => {
-    // console.log("Time: ", Date.now());
-    logger.info("Meeting API route");
     next();
 });
 
@@ -23,10 +21,11 @@ router.get("/meeting/:session", (req, res) => {
 router.post("/meeting/api/get-token", function (req, res) {
     // The video-call to connect
     var sessionName = req.body.sessionName;
+    var sessionDuration = req.body.sessionDuration;
 
-    console.log("Getting a token | {sessionName}={" + sessionName + "}");
+    logger.info("Getting a token | {sessionName}={" + sessionName + "}");
 
-    utils.getToken(sessionName, res);
+    utils.getToken(sessionName, sessionDuration, res);
 });
 
 // Remove user from session
@@ -34,7 +33,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
     var token = req.body.token;
-    console.log(
+    logger.info(
         "Removing user | {sessionName, token}={" +
             sessionName +
             ", " +
@@ -43,6 +42,7 @@ router.post("/meeting/api/remove-user", function (req, res) {
     );
 
     utils.removeUser(sessionName, token, res);
+    utils.removeSessionRequests(sessionName, -1);
 });
 
 /* Manual Close Session API */
@@ -54,7 +54,7 @@ router.get("/meeting/end-meeting/:session", (req, res) => {
 router.delete("/meeting/api/close-session", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Closing session | {sessionName}=" + sessionName);
+    logger.info("Closing session | {sessionName}=" + sessionName);
 
     utils.closeSession(sessionName, res);
 });
@@ -63,7 +63,7 @@ router.delete("/meeting/api/close-session", function (req, res) {
 router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Closing session | {sessionName}=" + sessionName);
+    logger.info("Closing session | {sessionName}=" + sessionName);
 
     utils.closeSession(sessionName, res);
 });
@@ -72,14 +72,23 @@ router.delete("/meeting/end-meeting/api/close-session", function (req, res) {
 router.post("/meeting/api/fetch-info", function (req, res) {
     // Retrieve params from POST body
     var sessionName = req.body.sessionName;
-    console.log("Fetching session info | {sessionName}=" + sessionName);
+    // logger.debug("Fetching session info | {sessionName}=" + sessionName);
 
     utils.fetchSessionInfo(sessionName, res);
 });
 
+// Remove connection requests
+router.post("/meeting/api/remove-connection-requests", function (req, res) {
+    // Retrieve params from POST body
+    var sessionName = req.body.sessionName;
+    logger.info("Remove session requests | {sessionName}=" + sessionName);
+
+    utils.removeSessionRequests(sessionName, -1, res);
+});
+
 // Fetch all session info
 router.get("/meeting/api/fetch-all", function (req, res) {
-    console.log("Fetching all session info");
+    logger.info("Fetching all session info");
     utils.fetchAllActiveSessions(res);
 });
 

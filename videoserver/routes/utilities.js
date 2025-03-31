@@ -3,7 +3,6 @@ var moment = require("moment");
 
 var OpenVidu = require("openvidu-node-client").OpenVidu;
 var OpenViduRole = require("openvidu-node-client").OpenViduRole;
-var config = require("../config/config");
 const logger = require("../config/logger");
 var mysql = require("mysql2");
 var fs = require("fs");
@@ -12,13 +11,21 @@ const Busboy = require("busboy");
 const { default: PQueue } = require("p-queue");
 const path = require("path");
 
-var connection = mysql.createPool(config.DB_CONNECTION);
+var connection = mysql.createPool({
+    connectionLimit: 100,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    multipleStatements: true,
+});
 
 // Environment variable: URL where our OpenVidu server is listening
-var OPENVIDU_URL = config.OPENVIDU_URL;
-console.log(OPENVIDU_URL);
+var OPENVIDU_URL = process.env.OPENVIDU_URL;
+logger.info(OPENVIDU_URL);
 // Environment variable: secret shared with our OpenVidu server
-var OPENVIDU_SECRET = config.OPENVIDU_SECRET;
+var OPENVIDU_SECRET = process.env.OPENVIDU_SECRET;
 
 // Entrypoint to OpenVidu Node Client SDK
 var OV = new OpenVidu(OPENVIDU_URL, OPENVIDU_SECRET);
@@ -30,18 +37,116 @@ var mapSessionNamesTokens = {};
 
 var meetingDetails = {};
 
-function getToken(sessionName, res) {
-    if (mapSessions[sessionName]) {
-        // Session already exists
-        existingSession(sessionName, res);
+var sessionList = [];
+
+class SessionManager {
+    constructor(sessionName, joinId) {
+        this.sessionName = sessionName;
+        this.joinId = joinId;
+        this.createdAt = Date.now();
+    }
+}
+
+function countSessionRequests(sessionName) {
+    return sessionList.filter((session) => session.sessionName === sessionName)
+        .length;
+}
+
+function checkSessionRequests(sessionName, joinId) {
+    return sessionList.find(
+        (session) =>
+            session.sessionName === sessionName && session.joinId === joinId
+    );
+}
+
+function removeSessionRequests(sessionName, joinId = -1, res = null) {
+    logger.debug(
+        "Removing session requests | {sessionName}={" +
+            sessionName +
+            "} | {joinId}={" +
+            joinId +
+            "}"
+    );
+    if (joinId > 0) {
+        sessionList = sessionList.filter(
+            (session) =>
+                !(
+                    session.sessionName == sessionName &&
+                    session.joinId == joinId
+                )
+        );
     } else {
+        sessionList = sessionList.filter(
+            (session) => session.sessionName !== sessionName
+        );
+    }
+    logger.debug("Session List: " + JSON.stringify(sessionList, null, 2));
+    if (res) sendResponse(res, 200, "Removed session requests");
+}
+
+function getToken(sessionName, sessionDuration, res) {
+    logger.info("Getting a token | {sessionName}={" + sessionName + "}");
+
+    sessionObject = new SessionManager(
+        sessionName,
+        countSessionRequests(sessionName) + 1
+    );
+
+    sessionList.push(sessionObject);
+
+    logger.debug("Session List: " + JSON.stringify(sessionList, null, 2));
+
+    if (sessionObject.joinId == 1) {
+        if (mapSessions[sessionName]) {
+            delete mapSessions[sessionName];
+        }
         newSession(sessionName, res);
+    } else {
+        if (mapSessions[sessionName]) {
+            sessionObjectFirst = checkSessionRequests(sessionName, 1);
+            timeDiff = Date.now() - sessionObjectFirst.createdAt;
+            // If the previous session was started more than 30 seconds
+            // plus the session duration, remove the session requests
+            timeBuffer = parseInt(sessionDuration) + 30000;
+            logger.debug(
+                "Session:" +
+                    sessionName +
+                    " | Time Diff: " +
+                    timeDiff +
+                    " | Time Buffer: " +
+                    timeBuffer
+            );
+            if (timeDiff > timeBuffer) {
+                removeSessionRequests(sessionName);
+                if (mapSessions[sessionName]) {
+                    delete mapSessions[sessionName];
+                }
+
+                if (mapSessionNamesTokens[sessionName]) {
+                    delete mapSessionNamesTokens[sessionName];
+                }
+                sendResponse(
+                    res,
+                    303,
+                    "Old session found, cleared. Please try again in a moment."
+                );
+            } else {
+                existingSession(sessionName, res, sessionObject.joinId);
+            }
+        } else {
+            removeSessionRequests(sessionName, sessionObject.joinId);
+            sendResponse(
+                res,
+                303,
+                "Session not yet created. Please try again in a moment."
+            );
+        }
     }
 }
 
 function newSession(sessionName, res) {
     // New session
-    console.log("New session " + sessionName);
+    logger.info("New session " + sessionName);
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -51,13 +156,17 @@ function newSession(sessionName, res) {
         role: role,
     };
 
-    console.log(meetingDetails[sessionName].is_recording_audio_enabled);
-
     // Create a new OpenVidu Session asynchronously
     OV.createSession()
         .then((session) => {
             // Store the new Session in the collection of Sessions
             mapSessions[sessionName] = session;
+            logger.info(
+                "New session created for sessionName- " +
+                    sessionName +
+                    "| sessionId- " +
+                    mapSessions[sessionName].sessionId
+            );
             // Store a new empty array in the collection of tokens
             mapSessionNamesTokens[sessionName] = [];
 
@@ -74,19 +183,41 @@ function newSession(sessionName, res) {
                     });
                 })
                 .catch((error) => {
-                    console.error(error);
+                    sendResponse(
+                        res,
+                        500,
+                        "Error connecting to the new session : session_name- " +
+                            sessionName +
+                            " | Error- " +
+                            error.message
+                    );
+                    removeSessionRequests(sessionName, 1);
                 });
         })
         .catch((error) => {
-            console.error(error);
+            sendResponse(res, 500, "Error creating session: " + error.message);
         });
 }
 
-function existingSession(sessionName, res) {
-    console.log("Existing session " + sessionName);
+function existingSession(sessionName, res, joinId) {
+    logger.info(
+        "Existing session " +
+            sessionName +
+            ": " +
+            mapSessions[sessionName].sessionId
+    );
 
     // Get the existing Session from the collection
     var mySession = mapSessions[sessionName];
+
+    logger.debug(
+        "Active connections for session " +
+            sessionName +
+            ": " +
+            mapSessions[sessionName].sessionId +
+            " - " +
+            mySession.activeConnections.length
+    );
 
     // Role associated to this user
     var role = OpenViduRole.PUBLISHER;
@@ -108,12 +239,19 @@ function existingSession(sessionName, res) {
             });
         })
         .catch((error) => {
-            console.error(error);
-            if (error.message === "404") {
-                delete mapSessions[sessionName];
-                delete mapSessionNamesTokens[sessionName];
-                newSession(sessionName, connectionProperties, res);
-            }
+            sendResponse(
+                res,
+                500,
+                "Error connecting to an existing session : session_name- " +
+                    sessionName +
+                    " | session_id- " +
+                    mySession.sessionId +
+                    " | Error- " +
+                    error.message
+            );
+            removeSessionRequests(sessionName);
+            delete mapSessions[sessionName];
+            delete mapSessionNamesTokens[sessionName];
         });
 }
 
@@ -127,20 +265,25 @@ function removeUser(sessionName, token, res) {
         if (index !== -1) {
             // Token removed
             tokens.splice(index, 1);
-            console.log(sessionName + ": " + tokens.toString());
+            logger.info(sessionName + ": " + tokens.toString());
         } else {
             var msg = "Problems in the app server: the TOKEN wasn't valid";
             res.status(500).send(msg);
         }
         if (tokens.length == 0) {
             // Last user left: session must be removed
-            console.log(sessionName + " empty!");
+            logger.info(sessionName + " empty!");
             delete mapSessions[sessionName];
             if (mapSessionNamesTokens[sessionName]) {
                 delete mapSessionNamesTokens[sessionName];
                 updateMeeting(sessionName, "NOT STARTED")
                     .then(() => delete meetingDetails[sessionName])
-                    .catch((error) => console.error(error));
+                    .catch((error) =>
+                        logger.crit(
+                            "Error updating meeting status after removing all users - " +
+                                error
+                        )
+                    );
             }
         }
         res.status(200).send();
@@ -155,44 +298,66 @@ function closeSession(sessionName, res) {
     // If the session exists
     if (mapSessions[sessionName]) {
         var session = mapSessions[sessionName];
-        session.close();
-        delete mapSessions[sessionName];
-        if (mapSessionNamesTokens[sessionName]) {
-            delete mapSessionNamesTokens[sessionName];
-            updateMeeting(sessionName, "NOT STARTED")
-                .then(() => delete meetingDetails[sessionName])
-                .catch((error) => console.error(error));
+        try {
+            session.close();
+        } catch (error) {
+            logger.crit("Error closing session - " + error);
         }
-        res.status(200).send();
-    } else {
-        res.status(400).send("Meeting does not exist");
+        delete mapSessions[sessionName];
     }
+
+    if (mapSessionNamesTokens[sessionName]) {
+        delete mapSessionNamesTokens[sessionName];
+    }
+
+    if (meetingDetails[sessionName]) {
+        delete meetingDetails[sessionName];
+    }
+
+    updateMeeting(sessionName, "NOT STARTED").catch((error) =>
+        logger.crit(
+            "Error updating meeting status after closing session - " + error
+        )
+    );
+
+    removeSessionRequests(sessionName);
+
+    res.status(200).send();
 }
 
 function fetchSessionInfo(sessionName, res) {
-    var numberRequiredParticipants =
-        meetingDetails[sessionName]["number_of_participants"];
+    if (meetingDetails[sessionName]) {
+        if (meetingDetails[sessionName]["number_of_participants"]) {
+            var numberRequiredParticipants =
+                meetingDetails[sessionName]["number_of_participants"];
+        } else {
+            var numberRequiredParticipants = -1;
+        }
+    }
 
     // If the session exists
-    if (mapSessions[sessionName]) {
+    if (mapSessions[sessionName] && numberRequiredParticipants > 0) {
         mapSessions[sessionName]
             .fetch()
             .then((changed) => {
                 var meeting_start_time = null;
-                console.log("Any change: " + changed);
+                // logger.info("Any change: " + changed);
                 if (
                     mapSessions[sessionName].activeConnections.length >=
                     numberRequiredParticipants
                 ) {
-                    console.log("updating Meeting");
-                    meeting_start_time = moment().format("YYYY-MM-DD HH:mm:ss");
-                    updateMeeting(
-                        sessionName,
-                        "IN PROGRESS",
-                        meeting_start_time
-                    )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                    logger.info("updating Meeting");
+                    meeting_start_time = moment()
+                        .utc()
+                        .format("YYYY-MM-DD HH:mm:ss");
+                    updateMeeting(sessionName, "IN PROGRESS")
+                        .then((message) => logger.info(message))
+                        .catch((error) =>
+                            logger.crit(
+                                "Error updating meeting status after starting meeting - " +
+                                    error
+                            )
+                        );
 
                     logMeetingSession(
                         sessionName,
@@ -200,15 +365,23 @@ function fetchSessionInfo(sessionName, res) {
                         meeting_start_time,
                         0
                     )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                        .then((message) => logger.info(message))
+                        .catch((error) =>
+                            logger.crit(
+                                "Error logging meeting session - " + error
+                            )
+                        );
 
                     updateMeetingSession(
                         sessionName,
                         mapSessions[sessionName].sessionId
                     )
-                        .then((message) => console.log(message))
-                        .catch((error) => console.error(error));
+                        .then((message) => logger.info(message))
+                        .catch((error) =>
+                            logger.crit(
+                                "Error updating meeting session - " + error
+                            )
+                        );
                 }
                 res.status(200).send({
                     session_details: sessionToJson(mapSessions[sessionName]),
@@ -217,9 +390,11 @@ function fetchSessionInfo(sessionName, res) {
             })
             .catch((error) => res.status(400).send(error.message));
     } else {
-        var msg = "Problems in the app server: the SESSION does not exist";
-        console.log(msg);
-        res.status(500).send(msg);
+        sendResponse(
+            res,
+            500,
+            "Problems in the app server: the SESSION does not exist"
+        );
     }
 }
 
@@ -230,7 +405,7 @@ function fetchAllActiveSessions(res) {
             OV.activeSessions.forEach((s) => {
                 sessions.push(sessionToJson(s));
             });
-            console.log("Any change: " + changed);
+            logger.info("Any change: " + changed);
             res.status(200).send(sessions);
         })
         .catch((error) => res.status(400).send(error.message));
@@ -260,12 +435,12 @@ function getMeetingDetails(session_name, render_page, res) {
                 res.render("InvalidMeeting.ejs", { data: message });
             } else {
                 meetingDetails[session_name] = rows;
-                console.log(rows);
+                logger.info(rows);
                 res.render(render_page, {
                     data: { roomId: session_name, roomDetails: rows },
                     localRecording: {
-                        upload: config.UPLOAD_LOCAL_RECORDING,
-                        download: config.DOWNLOAD_LOCAL_RECORDING,
+                        upload: process.env.UPLOAD_LOCAL_RECORDING,
+                        download: process.env.DOWNLOAD_LOCAL_RECORDING,
                     },
                 });
             }
@@ -289,7 +464,7 @@ function getResults(session_name, callback) {
         "WHERE  room_id = ?";
     connection.getConnection((error, connection) => {
         if (error) {
-            console.error("Error connecting to Database ", error);
+            logger.crit("Error connecting to Database ", error);
             return callback(err, null);
         }
         connection.query(
@@ -297,10 +472,7 @@ function getResults(session_name, callback) {
             [session_name],
             function (err, rows, fields) {
                 if (err) {
-                    console.error(
-                        "Error while fetching data from database",
-                        err
-                    );
+                    logger.crit("Error while fetching data from database", err);
                     return callback(err, null);
                 }
                 return callback(null, rows[0]);
@@ -320,50 +492,27 @@ function checkIfMeetingisValid(rows) {
     return [true, null];
 }
 
-let updateMeeting = (meeting_id, status, meeting_start_time = null) => {
+let updateMeeting = (meeting_id, status) => {
     let updateMeetingQuery = "";
-    if (meeting_start_time != null) {
-        updateMeetingQuery =
-            "update video_app_room set status =?,meeting_start_time=?  where room_id=?";
-    } else {
-        updateMeetingQuery =
-            "update video_app_room set status =? where room_id=?";
-    }
+    updateMeetingQuery = "update video_app_room set status =? where room_id=?";
 
     return new Promise((resolve, reject) => {
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                if (meeting_start_time != null) {
-                    console.log(updateMeetingQuery);
-                    connection.query(
-                        updateMeetingQuery,
-                        [status, meeting_start_time, meeting_id],
-                        (err, result) => {
-                            if (err) reject(err);
-                            else
-                                resolve(
-                                    "Update Meeting: " +
-                                        result.affectedRows +
-                                        " record(s) updated"
-                                );
-                        }
-                    );
-                } else {
-                    connection.query(
-                        updateMeetingQuery,
-                        [status, meeting_id],
-                        (err, result) => {
-                            if (err) reject(err);
-                            else
-                                resolve(
-                                    "Update Meeting: " +
-                                        result.affectedRows +
-                                        " record(s) updated"
-                                );
-                        }
-                    );
-                }
+                connection.query(
+                    updateMeetingQuery,
+                    [status, meeting_id],
+                    (err, result) => {
+                        if (err) reject(err);
+                        else
+                            resolve(
+                                "Update Meeting: " +
+                                    result.affectedRows +
+                                    " record(s) updated"
+                            );
+                    }
+                );
             }
             connection.release();
         });
@@ -383,7 +532,6 @@ let logMeetingSession = (
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                console.log(logMeetingSessionQuery);
                 connection.query(
                     logMeetingSessionQuery,
                     [
@@ -402,8 +550,13 @@ let logMeetingSession = (
                         "Exp",
                     ],
                     (err, result) => {
-                        if (err) reject(err);
-                        else
+                        if (err) {
+                            if (err.code === "ER_DUP_ENTRY") {
+                                resolve("Entry already added in the table");
+                            } else {
+                                reject(err);
+                            }
+                        } else
                             resolve(
                                 "Log Session: " +
                                     result.affectedRows +
@@ -425,7 +578,7 @@ let updateMeetingSession = (room_id, session_id) => {
         connection.getConnection((error, connection) => {
             if (error) reject(error);
             else {
-                console.log(updateMeetingSessionQuery);
+                logger.info(updateMeetingSessionQuery);
                 connection.query(
                     updateMeetingSessionQuery,
                     [room_id, session_id],
@@ -509,7 +662,7 @@ function uploadLocalRecording(req, res) {
             } catch (e) {
                 req.unpipe(busboy);
                 workQueue.pause();
-                logger.crit(e);
+                logger.crit("Busboy error - " + e);
             }
         });
     }
@@ -524,16 +677,19 @@ function uploadLocalRecording(req, res) {
     busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
         handleError(() => {
             file.on("data", function (data) {
-                // console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+                // logger.info('File [' + fieldname + '] got ' + data.length + ' bytes');
             });
             file.on("end", function () {
                 logger.info("File upload finished - " + filename.filename);
             });
+            // Location on the docker container where the file will be saved
+            // This location is mounted to the host machine
+            saveToLocation = '/app/LocalRecordings'
             var saveTo = path.join(
-                config.LOCAL_RECORDING_FOLDER,
+                saveToLocation,
                 filename.filename
             );
-            if (fs.existsSync(config.LOCAL_RECORDING_FOLDER)) {
+            if (fs.existsSync(saveToLocation)) {
                 var outStream = fs.createWriteStream(saveTo);
                 file.pipe(outStream);
             } else {
@@ -553,6 +709,22 @@ function uploadLocalRecording(req, res) {
     return req.pipe(busboy);
 }
 
+function sendResponse(res, status, message) {
+    if (status == 200) {
+        logger.info("Response: " + message);
+    } else if (status > 300 && status < 400) {
+        logger.warn("Response: " + message);
+    } else {
+        logger.crit("Response: " + message);
+    }
+
+    try {
+        res.status(status).send(message);
+    } catch (error) {
+        logger.crit("Error sending response to client: " + error);
+    }
+}
+
 exports.getToken = getToken;
 exports.removeUser = removeUser;
 exports.closeSession = closeSession;
@@ -562,3 +734,4 @@ exports.getMeetingDetails = getMeetingDetails;
 exports.startRemoteRecording = startRemoteRecording;
 exports.stopRemoteRecording = stopRemoteRecording;
 exports.uploadLocalRecording = uploadLocalRecording;
+exports.removeSessionRequests = removeSessionRequests;

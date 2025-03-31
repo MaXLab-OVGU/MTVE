@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+import json
 import environ
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -25,12 +26,12 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "VALUE_FROM_ENV_SPECIFIC_SETTINGS_FILE"
+SECRET_KEY = os.environ["DJANGO_SECRET"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False").upper() == "TRUE"
 
-ALLOWED_HOSTS = ["localhost"]
+ALLOWED_HOSTS = [os.environ["CERT_DOMAIN"]]
 
 # Application definition
 
@@ -56,8 +57,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-# CORS_ORIGIN_ALLOW_ALL = True
-# MEDIA_ROOT = "/home/maxlab-conference/meeting_recordings/"
+
 ROOT_URLCONF = "MaxLabProject.urls"
 AUTH_USER_MODEL = "video_app.Account"
 
@@ -72,40 +72,25 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "video_app.context_processors.video_server"
+                "video_app.context_processors.video_server",
             ],
         },
     },
 ]
 
-# WSGI_APPLICATION = 'MaxLabProject.wsgi.application'
-
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-DATABASES = "VALUE_FROM_ENV_SPECIFIC_SETTINGS_FILE"
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'experiments',
-#         'USER':'maxlabuser',
-#         'PASSWORD':'maxlabuser',
-#         'HOST':'localhost',
-#         "PORT":'3306'
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     }
-# }
-
-
-
+DATABASES = {
+    "default": {
+        "ENGINE": 'mysql.connector.django',
+        "NAME": os.environ["DB_NAME"],
+        "USER": os.environ["DB_USER"],
+        "PASSWORD": os.environ["DB_PASSWORD"],
+        "HOST": os.environ["DB_HOST"],
+        "PORT": os.environ["DB_PORT"],
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -130,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Berlin"
 
 USE_I18N = True
 
@@ -142,9 +127,25 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = "/static/"
-STATIC_ROOT = Path(BASE_DIR, "static/")
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
 CSRF_FAILURE_VIEW = "video_app.views.csrf_failure"
 
-from .settings_config import *
+# App specific settings
+VIDEO_SERVER_URL = f"https://{os.environ['CERT_DOMAIN']}/meeting/"
+NOTIFY_EMAILS = json.loads(os.environ["NOTIFY_EMAILS"])
+# Openvidu server url
+OPENVIDU_URL = os.environ["OPENVIDU_RECORDING_URL"]
+# Allowed domains
+ALLOWED_EMAIL_DOMAINS = json.loads(os.environ["ALLOWED_EMAIL_DOMAINS"])
+
+# Email server configs
+EMAIL_HOST = os.environ["EMAIL_HOST"]
+EMAIL_PORT = os.environ["EMAIL_PORT"]
+EMAIL_USE_TLS = os.environ["EMAIL_USE_TLS"] == "True"
+EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
+EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
+DEFAULT_FROM_EMAIL = os.environ["DEFAULT_FROM_EMAIL"]
+
 from .logging_config import *

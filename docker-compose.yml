@@ -1,0 +1,56 @@
+services:
+    meetings_app:
+        build:
+            context: .
+            dockerfile: Dockerfile.meetings_app
+        env_file:
+            - .env
+        container_name: meetings_container
+        volumes:
+            - static_volume_meetings_app:/app/MaxLabProject/staticfiles
+        restart: always
+
+    videoserver:
+        build:
+            context: .
+            dockerfile: Dockerfile.videoserver
+        env_file:
+            - .env
+        container_name: videoserver
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - static_volume_videoserver:/app/videoserver/public/
+            - ${LOCAL_RECORDING_LOCATION}:/app/LocalRecordings
+        restart: always
+
+    frontend-proxy:
+        image: nginx:latest
+        ports:
+            - 80:80
+            - 443:443
+        container_name: frontend_proxy
+        volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - static_volume_meetings_app:/app/MaxLabProject/staticfiles:ro
+            - static_volume_videoserver:/app/videoserver/public/:ro
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/www:/var/www/certbot
+        depends_on:
+            - meetings_app
+            - videoserver
+
+    certbot:
+        image: certbot/certbot
+        container_name: certbot
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/www:/var/www/certbot
+        command: certonly --webroot -w /var/www/certbot --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
+        # In case of renewal, use the following command instead of the above one
+        # command: command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
+        depends_on:
+            - frontend-proxy
+
+volumes:
+    static_volume_meetings_app:
+    static_volume_videoserver:
