@@ -6,7 +6,7 @@ events {
 http {
     server {
         listen 80;
-        server_name maxlab-test.ovgu.de;
+        server_name ${CERT_DOMAIN};
 
         location ~ /.well-known/acme-challenge/ {
             root /var/www/certbot;
@@ -20,11 +20,11 @@ http {
         include mime.types;
         default_type application/octet-stream;
         sendfile on;
-        server_name maxlab-test.ovgu.de;
+        server_name ${CERT_DOMAIN};
         client_max_body_size 100M;
         
-        ssl_certificate /etc/letsencrypt/live/maxlab-test.ovgu.de/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/maxlab-test.ovgu.de/privkey.pem;
+        ssl_certificate /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
         root /app/MaxLabProject;
         index index.html index.htm;
     

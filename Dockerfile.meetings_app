@@ -65,14 +65,3 @@ RUN chmod +x entrypoint.sh
 
 # Run the application with entrypoint.sh
 CMD ["./entrypoint.sh"]
-
-# Apply migrations
-# RUN python manage.py migrate --noinput
-
-# Collect static files
-# RUN python manage.py collectstatic --noinput
-
-# Run the application
-# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-# python -m gunicorn --bind 0.0.0.0:8000 --workers 3 MaxLabProject.wsgi:application
-# CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "MaxLabProject.wsgi:application"]
