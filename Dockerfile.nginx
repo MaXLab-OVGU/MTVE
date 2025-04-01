@@ -1,0 +1,16 @@
+FROM nginx:latest
+
+# Set working directory
+WORKDIR /etc/nginx/
+
+# Copy the Nginx config template
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+
+# Copy the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+
+# Make the entrypoint script executable
+RUN chmod +x /entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
