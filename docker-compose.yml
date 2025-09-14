@@ -44,7 +44,7 @@ services:
             - videoserver
 
     certbot:
-        image: certbot/certbot
+        image: certbot/certbot:latest
         container_name: certbot
         volumes:
             - ./certbot/conf:/etc/letsencrypt
@@ -52,6 +52,8 @@ services:
         command: certonly --webroot -w /var/www/certbot --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
         # In case of renewal, use the following command instead of the above one
         # command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
+        # command: certonly --webroot -w /var/www/certbot --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive --keep-until-expiring
+         
         depends_on:
             - frontend-proxy
 
