@@ -51,7 +51,7 @@ services:
             - ./certbot/www:/var/www/certbot
         command: certonly --webroot -w /var/www/certbot --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
         # In case of renewal, use the following command instead of the above one
-        # command: command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
+        # command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERT_EMAIL} -d ${CERT_DOMAIN} --agree-tos --non-interactive
         depends_on:
             - frontend-proxy
 
