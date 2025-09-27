@@ -31,7 +31,19 @@ SECRET_KEY = os.environ["DJANGO_SECRET"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False").upper() == "TRUE"
 
+# Let Django know that HTTPS is handled by Nginx
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Allowed hosts must include your domain
 ALLOWED_HOSTS = [os.environ["CERT_DOMAIN"]]
+
+# CSRF trusted origins must match scheme + domain
+CSRF_TRUSTED_ORIGINS = [f'https://{os.environ["CERT_DOMAIN"]}']
+
+# These should remain True in production with HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 
@@ -83,7 +95,7 @@ TEMPLATES = [
 
 DATABASES = {
     "default": {
-        "ENGINE": 'mysql.connector.django',
+        "ENGINE": "mysql.connector.django",
         "NAME": os.environ["DB_NAME"],
         "USER": os.environ["DB_USER"],
         "PASSWORD": os.environ["DB_PASSWORD"],
