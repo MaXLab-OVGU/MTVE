@@ -10,7 +10,7 @@ from django.core.mail import EmailMessage, message
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from video_app.download_utility import download_utility
@@ -169,7 +169,7 @@ def experiments_history_view(request, message=None, roomid=None):
 def verification_view(request, email, token):
     if request.method == "GET":
         try:
-            decoded_email = force_text(urlsafe_base64_decode(email))
+            decoded_email = force_str(urlsafe_base64_decode(email))
             user = Account.objects.get(email=decoded_email)
             if user.is_active:
                 return redirect("home")
@@ -209,14 +209,14 @@ def request_password_reset_email(request):
 def reset_user_password(request, email, token):
     if request.method == "GET":
         context = {"email": email, "token": token}
-        user = Account.objects.get(email=force_text(urlsafe_base64_decode(email)))
+        user = Account.objects.get(email=force_str(urlsafe_base64_decode(email)))
 
         if not PasswordResetTokenGenerator().check_token(user, token):
             return render(request, "accounts/passwordFailure.html")
         else:
             return render(request, "accounts/reset-user-password.html", context)
     if request.method == "POST":
-        user = Account.objects.get(email=force_text(urlsafe_base64_decode(email)))
+        user = Account.objects.get(email=force_str(urlsafe_base64_decode(email)))
         if PasswordResetTokenGenerator().check_token(user, token):
             context = {"email": email, "token": token}
             password1 = request.POST["password1"]
